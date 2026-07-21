@@ -212,10 +212,6 @@
     transition: color 0.15s ease;
 }
 
-.user-manual__breadcrumb a:hover {
-    color: var(--user-manual-primary);
-}
-
 .user-manual__breadcrumb-separator {
     color: #d1d5db;
     margin: 0 0.125rem;
