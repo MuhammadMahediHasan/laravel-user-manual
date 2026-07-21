@@ -17,7 +17,7 @@ class ClearCacheCommand extends Command
     {
         $prefix = ManualConfig::string('user-manual.cache_prefix', 'user-manual');
         $version = ManualConfig::string('user-manual.version', '1.0');
-        $contentRoot = rtrim(ManualConfig::string('user-manual.content_path', resource_path('docs')), '/');
+        $contentRoot = rtrim(ManualConfig::string('user-manual.content_path', resource_path('user-manual')), '/');
         $cleared = 0;
 
         foreach (ManualConfig::stringList('user-manual.locales', ['en']) as $locale) {

@@ -29,7 +29,7 @@ abstract class TestCase extends OrchestraTestCase
             'driver' => 'eloquent',
             'model' => User::class,
         ]);
-        $app['config']->set('user-manual.content_path', __DIR__.'/fixtures/docs');
+        $app['config']->set('user-manual.content_path', __DIR__.'/fixtures/user-manual');
         $app['config']->set('user-manual.middleware', ['web', 'auth']);
         $app['config']->set('user-manual.auth_guards', ['web']);
         $app['config']->set('user-manual.cache_prefix', 'user-manual-test');

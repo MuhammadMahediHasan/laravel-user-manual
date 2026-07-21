@@ -34,7 +34,7 @@ it('redirects docs root to default page', function () {
 });
 
 it('returns updated content when markdown file is modified without clearing cache', function () {
-    $filePath = __DIR__.'/../fixtures/docs/1.0/en/introduction.md';
+    $filePath = __DIR__.'/../fixtures/user-manual/1.0/en/introduction.md';
     $originalContent = file_get_contents($filePath);
 
     try {
@@ -58,8 +58,8 @@ it('returns updated content when markdown file is modified without clearing cach
 });
 
 it('clears cached docs entries', function () {
-    $filePath = __DIR__.'/../fixtures/docs/1.0/en/introduction.md';
-    $navPath = __DIR__.'/../fixtures/docs/1.0/en/navigation.md';
+    $filePath = __DIR__.'/../fixtures/user-manual/1.0/en/introduction.md';
+    $navPath = __DIR__.'/../fixtures/user-manual/1.0/en/navigation.md';
 
     $this->actingAs($this->makeAuthenticatable())
         ->get(route('user-manual.show', ['locale' => 'en', 'page' => 'introduction']))

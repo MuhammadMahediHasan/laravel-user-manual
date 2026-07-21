@@ -19,7 +19,7 @@ return [
     |--------------------------------------------------------------------------
     */
     'version' => '1.0',
-    'content_path' => resource_path('docs'),
+    'content_path' => resource_path('user-manual'),
     'default_page' => 'introduction',
     'locales' => ['en'],
     'default_locale' => 'en',

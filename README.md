@@ -42,7 +42,7 @@ php artisan vendor:publish --tag=user-manual-lang
 php artisan vendor:publish --tag=user-manual-assets
 ```
 
-Add your content under `resources/docs/{version}/{locale}/` (see [Content structure](#content-structure) below).
+Add your content under `resources/user-manual/{version}/{locale}/` (see [Content structure](#content-structure) below).
 
 ## Default styling
 
@@ -87,7 +87,7 @@ If you skip re-publishing, stale published views may still reference old Tailwin
 ## Content structure
 
 ```
-resources/docs/{version}/{locale}/
+resources/user-manual/{version}/{locale}/
 ├── navigation.md
 ├── introduction.md
 └── ...
@@ -186,6 +186,13 @@ UserManual::resolveAccessUsing(function ($user, string $slug, array $requirement
 ```bash
 php artisan user-manual:clear-cache
 ```
+
+## Writing manual pages with an AI agent
+
+This package ships a skill (`laravel-user-manual-authoring`) that teaches the agent
+the correct conventions for authoring manual pages — file locations, slug rules,
+`navigation.md` syntax, and permission mapping. Copy `SKILL.md` it into your project's
+skill directory (e.g. `.claude/skills/`) after installing
 
 ## Development
 

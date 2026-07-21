@@ -5,7 +5,7 @@ use MuhammadMahediHasan\UserManual\Services\NavigationParser;
 it('parses navigation markdown links', function () {
     $parser = new NavigationParser;
 
-    $items = $parser->parse(__DIR__.'/../fixtures/docs/1.0/en/navigation.md');
+    $items = $parser->parse(__DIR__.'/../fixtures/user-manual/1.0/en/navigation.md');
 
     expect($items)->toHaveCount(2)
         ->and($items[0]['title'])->toBe('Introduction')
@@ -33,7 +33,7 @@ it('builds a nested navigation tree', function () {
 it('returns an empty list when navigation file is missing', function () {
     $parser = new NavigationParser;
 
-    expect($parser->parse(__DIR__.'/../fixtures/docs/1.0/en/missing-navigation.md'))->toBe([]);
+    expect($parser->parse(__DIR__.'/../fixtures/user-manual/1.0/en/missing-navigation.md'))->toBe([]);
 });
 
 it('returns an empty tree for empty navigation items', function () {

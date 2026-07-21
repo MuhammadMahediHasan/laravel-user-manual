@@ -41,7 +41,7 @@ class DocsController extends Controller
         }
 
         $version = ManualConfig::string('user-manual.version', '1.0');
-        $contentRoot = rtrim(ManualConfig::string('user-manual.content_path', resource_path('docs')), '/');
+        $contentRoot = rtrim(ManualConfig::string('user-manual.content_path', resource_path('user-manual')), '/');
         $filePath = "{$contentRoot}/{$version}/{$locale}/{$page}.md";
         $navPath = "{$contentRoot}/{$version}/{$locale}/navigation.md";
 
