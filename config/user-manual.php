@@ -98,7 +98,7 @@ return [
         'back_url' => '/dashboard',
         'login_url' => '/login',
         'vite_assets' => [],
-        'primary_color' => '#BC3863',
+        'primary_color' => '#FF2D20',
         'app_name' => null,
     ],
 

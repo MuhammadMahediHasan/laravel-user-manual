@@ -8,13 +8,15 @@
         use MuhammadMahediHasan\UserManual\Support\ManualConfig;
 
         $appName = ManualConfig::string('user-manual.ui.app_name', (string) config('app.name', 'Laravel'));
-        $primaryColor = ManualConfig::string('user-manual.ui.primary_color', '#BC3863');
+        $primaryColor = ManualConfig::string('user-manual.ui.primary_color', '#FF2D20');
         $routeName = ManualConfig::string('user-manual.route_name', 'user-manual.show');
         $locales = ManualConfig::stringList('user-manual.locales', ['en']);
         $viteAssets = ManualConfig::array('user-manual.ui.vite_assets', []);
     @endphp
     <title>{{ $title }} — {{ __('user-manual::messages.title') }} | {{ $appName }}</title>
     <link rel="icon" href="/favicon.ico" sizes="any">
+    <link rel="preconnect" href="https://fonts.bunny.net">
+    <link href="https://fonts.bunny.net/css?family=figtree:400,500,600,700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="{{ ManualAssets::url('css/user-manual.css') }}">
 
     <style>
