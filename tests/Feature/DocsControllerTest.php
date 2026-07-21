@@ -29,8 +29,8 @@ it('renders restricted pages when permission is granted', function () {
 
 it('redirects docs root to default page', function () {
     $this->actingAs($this->makeAuthenticatable())
-        ->get('/docs')
-        ->assertRedirect('/docs/en/introduction');
+        ->get('/user-manual')
+        ->assertRedirect('/user-manual/en/introduction');
 });
 
 it('returns updated content when markdown file is modified without clearing cache', function () {
@@ -77,7 +77,7 @@ it('clears cached docs entries', function () {
 
 it('returns not found for invalid locales', function () {
     $this->actingAs($this->makeAuthenticatable())
-        ->get('/docs/fr/introduction')
+        ->get('/user-manual/fr/introduction')
         ->assertNotFound();
 });
 
@@ -89,8 +89,8 @@ it('returns not found for missing pages', function () {
 
 it('redirects legacy docs urls to default locale', function () {
     $this->actingAs($this->makeAuthenticatable())
-        ->get('/docs/material')
-        ->assertRedirect('/docs/en/material');
+        ->get('/user-manual/material')
+        ->assertRedirect('/user-manual/en/material');
 });
 
 it('clears cache even when a locale directory is missing', function () {

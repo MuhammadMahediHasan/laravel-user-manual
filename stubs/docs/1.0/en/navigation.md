@@ -1,2 +1,1 @@
 - [Introduction](/user-manual/en/introduction)
-- [Material](/user-manual/en/material)

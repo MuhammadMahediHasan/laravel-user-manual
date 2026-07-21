@@ -12,7 +12,7 @@ Markdown-based in-app user manual for Laravel applications.
 ## Features
 
 - Markdown content with GitHub-flavored rendering
-- Multi-locale support (`/docs/en/...`, `/docs/bn/...`)
+- Multi-locale support (`/user-manual/en/...`, `/user-manual/bn/...`)
 - Sidebar navigation from `navigation.md`
 - Optional permission-based page and sidebar filtering
 - Publishable config, views, translations, and default assets
@@ -96,9 +96,9 @@ resources/user-manual/{version}/{locale}/
 Example `navigation.md`:
 
 ```markdown
-- [Introduction](/docs/en/introduction)
-- [Users](/docs/en/users)
-  - [Roles](/docs/en/roles)
+- [Introduction](/user-manual/en/introduction)
+- [Users](/user-manual/en/users)
+  - [Roles](/user-manual/en/roles)
 ```
 
 Page slugs are restricted to `[a-z0-9-]+` at the route level. Path traversal attempts (e.g. `../`) are rejected with a 404.
@@ -111,7 +111,7 @@ Key options:
 
 | Key | Description |
 |-----|-------------|
-| `route_prefix` | URL prefix (default: `docs`) |
+| `route_prefix` | URL prefix (default: `user-manual`) |
 | `middleware` | Route middleware stack |
 | `locales` | Supported locales |
 | `permission-mapper` | Page slug → permissions map |

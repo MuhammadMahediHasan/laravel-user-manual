@@ -82,7 +82,7 @@ class PermissionResolver
 
     public function slugFromUrl(string $url): string
     {
-        $routePrefix = trim(ManualConfig::string('user-manual.route_prefix', 'docs'), '/');
+        $routePrefix = trim(ManualConfig::string('user-manual.route_prefix', 'user-manual'), '/');
         $locales = ManualConfig::stringList('user-manual.locales', ['en']);
 
         $path = trim(parse_url($url, PHP_URL_PATH) ?? '', '/');

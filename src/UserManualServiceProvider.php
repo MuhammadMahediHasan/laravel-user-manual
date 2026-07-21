@@ -2,6 +2,7 @@
 
 namespace MuhammadMahediHasan\UserManual;
 
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use MuhammadMahediHasan\UserManual\Console\ClearCacheCommand;
@@ -34,6 +35,7 @@ class UserManualServiceProvider extends ServiceProvider
         $this->registerViews();
         $this->registerAssets();
         $this->loadTranslationsFrom(__DIR__.'/../lang', 'user-manual');
+        $this->ensureDemoDocsExist();
 
         if ($this->app->runningInConsole()) {
             $this->publishes([
@@ -53,10 +55,15 @@ class UserManualServiceProvider extends ServiceProvider
             ], 'user-manual-assets');
 
             $this->publishes([
+                __DIR__.'/../stubs/docs' => resource_path('user-manual'),
+            ], 'user-manual-docs');
+
+            $this->publishes([
                 __DIR__.'/../config/user-manual.php' => config_path('user-manual.php'),
                 __DIR__.'/../resources/views' => resource_path('views/vendor/user-manual'),
                 __DIR__.'/../lang' => lang_path('vendor/user-manual'),
                 __DIR__.'/../resources/assets' => public_path('vendor/user-manual'),
+                __DIR__.'/../stubs/docs' => resource_path('user-manual'),
             ], 'user-manual');
 
             $this->commands([
@@ -66,6 +73,31 @@ class UserManualServiceProvider extends ServiceProvider
 
         if (ManualConfig::bool('user-manual.register_routes', true)) {
             $this->registerRoutes();
+        }
+    }
+
+    protected function ensureDemoDocsExist(): void
+    {
+        $contentPath = rtrim(ManualConfig::string('user-manual.content_path', resource_path('user-manual')), '/');
+        $version = ManualConfig::string('user-manual.version', '1.0');
+        $defaultLocale = ManualConfig::string('user-manual.default_locale', 'en');
+
+        $targetDir = "{$contentPath}/{$version}/{$defaultLocale}";
+        $stubsDir = __DIR__.'/../stubs/docs/1.0/en';
+
+        if (! File::isDirectory($stubsDir)) {
+            return;
+        }
+
+        File::ensureDirectoryExists($targetDir);
+
+        foreach (['navigation.md', 'introduction.md'] as $file) {
+            $targetFile = "{$targetDir}/{$file}";
+            $sourceFile = "{$stubsDir}/{$file}";
+
+            if (! File::exists($targetFile) && File::exists($sourceFile)) {
+                File::copy($sourceFile, $targetFile);
+            }
         }
     }
 
@@ -87,7 +119,7 @@ class UserManualServiceProvider extends ServiceProvider
 
     protected function registerRoutes(): void
     {
-        $prefix = trim(ManualConfig::string('user-manual.route_prefix', 'docs'), '/');
+        $prefix = trim(ManualConfig::string('user-manual.route_prefix', 'user-manual'), '/');
         $defaultLocale = ManualConfig::string('user-manual.default_locale', 'en');
         $defaultPage = ManualConfig::string('user-manual.default_page', 'introduction');
         $locales = implode('|', ManualConfig::stringList('user-manual.locales', ['en']));

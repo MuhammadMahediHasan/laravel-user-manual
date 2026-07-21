@@ -124,13 +124,13 @@ it('uses injected user before request and guard resolution', function () {
 it('parses slugs from locale prefixed urls', function () {
     $resolver = new PermissionResolver(null, new UserManualManager);
 
-    expect($resolver->slugFromUrl('/docs/en/material'))->toBe('material');
+    expect($resolver->slugFromUrl('/user-manual/en/material'))->toBe('material');
 });
 
 it('parses slugs from legacy urls without locale', function () {
     $resolver = new PermissionResolver(null, new UserManualManager);
 
-    expect($resolver->slugFromUrl('/docs/material'))->toBe('material');
+    expect($resolver->slugFromUrl('/user-manual/material'))->toBe('material');
 });
 
 it('parses slugs from arbitrary paths using basename', function () {
@@ -148,7 +148,7 @@ it('filters navigation by permissions', function () {
     $navigation = [
         [
             'title' => 'Material',
-            'url' => '/docs/en/material',
+            'url' => '/user-manual/en/material',
             'external' => false,
             'children' => [],
         ],
@@ -184,12 +184,12 @@ it('keeps parent items when accessible children exist', function () {
     $navigation = [
         [
             'title' => 'LMS',
-            'url' => '/docs/en/lms',
+            'url' => '/user-manual/en/lms',
             'external' => false,
             'children' => [
                 [
                     'title' => 'Material',
-                    'url' => '/docs/en/material',
+                    'url' => '/user-manual/en/material',
                     'external' => false,
                     'children' => [],
                 ],

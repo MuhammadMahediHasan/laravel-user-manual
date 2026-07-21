@@ -1,7 +1,7 @@
 @php
     use MuhammadMahediHasan\UserManual\Support\ManualConfig;
 
-    $routePrefix = trim(ManualConfig::string('user-manual.route_prefix', 'docs'), '/');
+    $routePrefix = trim(ManualConfig::string('user-manual.route_prefix', 'user-manual'), '/');
     $locales = ManualConfig::stringList('user-manual.locales', ['en']);
 
     $resolveSlug = function (string $url) use ($routePrefix, $locales): string {

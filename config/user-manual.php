@@ -7,7 +7,7 @@ return [
     | Routes
     |--------------------------------------------------------------------------
     */
-    'route_prefix' => 'docs',
+    'route_prefix' => 'user-manual',
     'route_name' => 'user-manual.show',
     'middleware' => ['web', 'auth'],
     'auth_guards' => ['web'],

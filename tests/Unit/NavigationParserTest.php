@@ -9,7 +9,7 @@ it('parses navigation markdown links', function () {
 
     expect($items)->toHaveCount(2)
         ->and($items[0]['title'])->toBe('Introduction')
-        ->and($items[0]['url'])->toBe('/docs/en/introduction')
+        ->and($items[0]['url'])->toBe('/user-manual/en/introduction')
         ->and($items[0]['depth'])->toBe(0)
         ->and($items[1]['title'])->toBe('Material');
 });
@@ -18,8 +18,8 @@ it('builds a nested navigation tree', function () {
     $parser = new NavigationParser;
 
     $items = [
-        ['title' => 'Parent', 'url' => '/docs/en/parent', 'external' => false, 'depth' => 0],
-        ['title' => 'Child', 'url' => '/docs/en/child', 'external' => false, 'depth' => 1],
+        ['title' => 'Parent', 'url' => '/user-manual/en/parent', 'external' => false, 'depth' => 0],
+        ['title' => 'Child', 'url' => '/user-manual/en/child', 'external' => false, 'depth' => 1],
     ];
 
     $tree = $parser->buildTree($items);

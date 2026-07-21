@@ -1,12 +1,32 @@
 <?php
 
+afterEach(function () {
+    $paths = [
+        config_path('user-manual.php'),
+        resource_path('views/vendor/user-manual/show.blade.php'),
+        resource_path('views/vendor/user-manual/partials/nav.blade.php'),
+        lang_path('vendor/user-manual/en/messages.php'),
+        lang_path('vendor/user-manual/bn/messages.php'),
+        public_path('vendor/user-manual/css/user-manual.css'),
+        public_path('vendor/user-manual/js/user-manual.js'),
+        resource_path('user-manual/1.0/en/navigation.md'),
+        resource_path('user-manual/1.0/en/introduction.md'),
+    ];
+
+    foreach ($paths as $path) {
+        if (is_file($path)) {
+            @unlink($path);
+        }
+    }
+});
+
 it('rejects path traversal attempts in the page slug', function () {
     $this->actingAs($this->makeAuthenticatable());
 
-    $this->get('/docs/en/../../etc/passwd')->assertNotFound();
-    $this->get('/docs/en/..%2F..%2Fetc%2Fpasswd')->assertNotFound();
-    $this->get('/docs/en/foo/bar')->assertNotFound();
-    $this->get('/docs/en/..%2f..%2fetc%2fpasswd')->assertNotFound();
+    $this->get('/user-manual/en/../../etc/passwd')->assertNotFound();
+    $this->get('/user-manual/en/..%2F..%2Fetc%2Fpasswd')->assertNotFound();
+    $this->get('/user-manual/en/foo/bar')->assertNotFound();
+    $this->get('/user-manual/en/..%2f..%2fetc%2fpasswd')->assertNotFound();
 });
 
 it('publishes package config to the application config path', function () {
@@ -67,6 +87,17 @@ it('publishes package assets to the public vendor directory', function () {
     expect($js)->toBeFile();
 });
 
+it('publishes package docs stubs to the application docs directory', function () {
+    $nav = resource_path('user-manual/1.0/en/navigation.md');
+    $intro = resource_path('user-manual/1.0/en/introduction.md');
+
+    $this->artisan('vendor:publish', ['--tag' => 'user-manual-docs'])
+        ->assertSuccessful();
+
+    expect($nav)->toBeFile();
+    expect($intro)->toBeFile();
+});
+
 it('publishes all package resources with the combined tag', function () {
     $paths = [
         config_path('user-manual.php'),
@@ -74,6 +105,8 @@ it('publishes all package resources with the combined tag', function () {
         lang_path('vendor/user-manual/en/messages.php'),
         public_path('vendor/user-manual/css/user-manual.css'),
         public_path('vendor/user-manual/js/user-manual.js'),
+        resource_path('user-manual/1.0/en/navigation.md'),
+        resource_path('user-manual/1.0/en/introduction.md'),
     ];
 
     foreach ($paths as $path) {

@@ -19,7 +19,7 @@ locale.
 - Slugs must match `[a-z0-9-]+` — lowercase, numbers, hyphens only. No
   underscores, no camelCase, no nested paths.
 - The slug is the filename without `.md` and becomes the URL segment:
-  `resources/user-manual/1.0/en/invoicing.md` → `/docs/en/invoicing`.
+  `resources/user-manual/1.0/en/invoicing.md` → `/user-manual/en/invoicing`.
 
 ## Page structure
 
@@ -43,9 +43,9 @@ otherwise (though they remain directly accessible by URL).
 Format:
 
 ```markdown
-- [Introduction](/docs/en/introduction)
-- [Invoicing](/docs/en/invoicing)
-  - [Recurring invoices](/docs/en/invoicing-recurring)
+- [Introduction](/user-manual/en/introduction)
+- [Invoicing](/user-manual/en/invoicing)
+  - [Recurring invoices](/user-manual/en/invoicing-recurring)
 ```
 
 Nest sub-pages two spaces under their parent. Link paths must include the
