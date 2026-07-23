@@ -42,6 +42,7 @@ readonly class PdfGeneratorService
         $content = $this->markdownRenderer->render($markdown);
         $title = $this->markdownRenderer->extractTitle($markdown) ?? ucwords(str_replace('-', ' ', $page));
 
+        /** @var view-string $viewName */
         $viewName = 'user-manual::pdf.page';
         $html = view($viewName, compact('content', 'title', 'locale'))->render();
 
@@ -96,6 +97,7 @@ readonly class PdfGeneratorService
             }
         }
 
+        /** @var view-string $viewName */
         $viewName = 'user-manual::pdf.document';
         $html = view($viewName, compact('pages', 'locale'))->render();
 

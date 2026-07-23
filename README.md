@@ -14,6 +14,7 @@ Markdown-based in-app user manual for Laravel applications.
 - Markdown content with GitHub-flavored rendering
 - Multi-locale support (`/user-manual/en/...`, `/user-manual/bn/...`)
 - Sidebar navigation from `navigation.md`
+- PDF Export (single-page & full manual) powered by mPDF with cover page, TOC, and locale-aware numbering
 - Optional permission-based page and sidebar filtering
 - Publishable config, views, translations, and default assets
 - Self-contained default styling (no Tailwind required)
@@ -69,7 +70,14 @@ This copies stub views to:
 ```
 resources/views/vendor/user-manual/
 ├── show.blade.php
-└── partials/nav.blade.php
+├── partials/nav.blade.php
+└── pdf/
+    ├── cover.blade.php
+    ├── document.blade.php
+    ├── footer.blade.php
+    ├── header.blade.php
+    ├── layout.blade.php
+    └── page.blade.php
 ```
 
 Published views automatically override the package defaults. Keep using `user-manual::show` in config — no view path change needed.
@@ -119,7 +127,46 @@ Key options:
 | `cache_ttl` | Cache lifetime in seconds (default: `3600`) |
 | `cache_prefix` | Cache key prefix |
 | `commonmark` | CommonMark converter overrides (see below) |
+| `pdf.enabled` | Enable/disable PDF exports (default: `true`) |
+| `pdf.default_font` | Default PDF font family (e.g. `kalpurush`, `nikosh`, `sans-serif`) |
+| `pdf.fonts` | Custom font directories and font data mappings for mPDF |
+| `pdf.cover_page` | Cover page settings (enabled, title, subtitle, version, date_format) |
 | `ui.vite_assets` | Optional Vite entrypoints to layer host app CSS on top of package defaults |
+
+### PDF Export
+
+The package provides single-page and full-manual PDF exports handled by a dedicated `PdfController` and `PdfGeneratorService` using `mpdf/mpdf`.
+
+#### Export Routes
+
+- **Single Page PDF**: `/user-manual/{locale}/{page}/pdf` (named route: `user-manual.pdf.page`)
+- **Full Manual PDF**: `/user-manual/{locale}/export/pdf` (named route: `user-manual.pdf.full`)
+
+#### PDF Features & Custom Typography
+
+- **Locale-Aware Formatting**: Page numbers (e.g. `{PAGENO}/{nbpg}`) automatically render as `4/11` for English (`en`) and `৪/১১` for Bengali (`bn`). Dates and section numbers adapt dynamically to the requested locale via `ManualNumber` and Carbon.
+- **Custom Fonts**: Register custom TrueType fonts (like Bengali fonts `kalpurush` or `nikosh`) under `pdf.fonts` in `config/user-manual.php`:
+
+```php
+'pdf' => [
+    'default_font' => 'kalpurush',
+    'fonts' => [
+        'font_dirs' => [ resource_path('fonts') ],
+        'font_data' => [
+            'kalpurush' => [
+                'R' => 'kalpurush.ttf',
+                'B' => 'kalpurush.ttf',
+                'useOTL' => 0xFF,
+                'useKashida' => 75,
+            ],
+        ],
+    ],
+],
+```
+
+*(Font keys are automatically normalized to lowercase to comply with mPDF font requirements).*
+
+- **Custom Cover, Header & Footer**: Publish views (`php artisan vendor:publish --tag=user-manual-views`) to customize PDF cover page, header, and footer Blade templates.
 
 ### Caching
 
@@ -191,8 +238,8 @@ php artisan user-manual:clear-cache
 
 This package ships a skill (`laravel-user-manual-authoring`) that teaches the agent
 the correct conventions for authoring manual pages — file locations, slug rules,
-`navigation.md` syntax, and permission mapping. Copy `SKILL.md` it into your project's
-skill directory (e.g. `.claude/skills/`) after installing
+`navigation.md` syntax, and permission mapping. Copy `SKILL.md` into your project's
+skill directory (e.g. `.claude/skills/`) after installing.
 
 ## Development
 

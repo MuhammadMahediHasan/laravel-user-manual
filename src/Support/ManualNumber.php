@@ -13,7 +13,7 @@ class ManualNumber
     {
         if (class_exists('NumberFormatter')) {
             $formatter = new NumberFormatter($locale, NumberFormatter::DECIMAL);
-            $formatter->setAttribute(NumberFormatter::GROUPING_USED, false);
+            $formatter->setAttribute(NumberFormatter::GROUPING_USED, 0);
 
             return (string) preg_replace_callback('/\d+/', function ($matches) use ($formatter) {
                 return $formatter->format((int) $matches[0]);
