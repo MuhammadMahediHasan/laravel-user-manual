@@ -10,4 +10,11 @@ return [
     'language' => 'Language',
     'english' => 'English',
     'bangla' => 'Bangla',
+    'pdf_export_page' => 'PDF',
+    'pdf_export_full' => 'Full PDF',
+    'pdf_cover_title' => 'User Manual',
+    'pdf_cover_subtitle' => 'Official User Documentation',
+    'version_label' => 'Version',
+    'generated_label' => 'Generated:',
+    'table_of_contents' => 'Table of Contents',
 ];

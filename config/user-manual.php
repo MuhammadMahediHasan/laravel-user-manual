@@ -102,4 +102,67 @@ return [
         'app_name' => null,
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | PDF Export Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Configuration for mPDF export features. Host applications can register
+    | custom font directories and font data to support custom typography.
+    |
+    */
+    'pdf' => [
+        'enabled' => true,
+        'paper_format' => 'A4',
+        'orientation' => 'P',
+        'margins' => [
+            'left' => 15,
+            'right' => 15,
+            'top' => 16,
+            'bottom' => 16,
+            'header' => 9,
+            'footer' => 9,
+        ],
+        'temp_dir' => sys_get_temp_dir(),
+
+        /*
+        | Custom Fonts Settings
+        |
+        | 'font_dirs' => [ resource_path('fonts') ],
+        | 'font_data' => [
+        |     'solaimanlipi' => [
+        |         'R' => 'SolaimanLipi.ttf',
+        |         'B' => 'SolaimanLipi_Bold.ttf',
+        |         'useOTL' => 0xFF,
+        |         'useKashida' => 75,
+        |     ],
+        | ],
+        */
+        'default_font' => 'sans-serif',
+        'fonts' => [
+            'font_dirs' => [],
+            'font_data' => [],
+        ],
+
+        'cover_page' => [
+            'enabled' => true,
+            'title' => null,
+            'subtitle' => null,
+            'version' => null,
+            'date_format' => 'F Y',
+            'logo_url' => null,
+            'view' => 'user-manual::pdf.cover',
+        ],
+
+        'header' => [
+            'show' => true,
+            'view' => 'user-manual::pdf.header',
+        ],
+
+        'footer' => [
+            'show' => true,
+            'view' => 'user-manual::pdf.footer',
+        ],
+    ],
+
 ];

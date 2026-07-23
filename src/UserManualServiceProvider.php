@@ -7,8 +7,10 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use MuhammadMahediHasan\UserManual\Console\ClearCacheCommand;
 use MuhammadMahediHasan\UserManual\Http\Controllers\DocsController;
+use MuhammadMahediHasan\UserManual\Http\Controllers\PdfController;
 use MuhammadMahediHasan\UserManual\Services\MarkdownRenderer;
 use MuhammadMahediHasan\UserManual\Services\NavigationParser;
+use MuhammadMahediHasan\UserManual\Services\PdfGeneratorService;
 use MuhammadMahediHasan\UserManual\Services\PermissionResolver;
 use MuhammadMahediHasan\UserManual\Support\ManualAssets;
 use MuhammadMahediHasan\UserManual\Support\ManualConfig;
@@ -28,6 +30,7 @@ class UserManualServiceProvider extends ServiceProvider
 
         $this->app->singleton(MarkdownRenderer::class);
         $this->app->singleton(NavigationParser::class);
+        $this->app->singleton(PdfGeneratorService::class);
     }
 
     public function boot(): void
@@ -143,6 +146,15 @@ class UserManualServiceProvider extends ServiceProvider
 
         Route::middleware($middleware)->group(function () use ($prefix, $defaultLocale, $defaultPage, $locales, $routeName) {
             Route::redirect($prefix, "{$prefix}/{$defaultLocale}/{$defaultPage}");
+
+            Route::get("{$prefix}/{locale}/export/pdf", [PdfController::class, 'exportFullPdf'])
+                ->where('locale', $locales)
+                ->name('user-manual.pdf.full');
+
+            Route::get("{$prefix}/{locale}/{page}/pdf", [PdfController::class, 'exportPagePdf'])
+                ->where('locale', $locales)
+                ->where('page', '[a-z0-9\-]+')
+                ->name('user-manual.pdf.page');
 
             Route::get("{$prefix}/{locale}/{page?}", [DocsController::class, 'show'])
                 ->where('locale', $locales)
