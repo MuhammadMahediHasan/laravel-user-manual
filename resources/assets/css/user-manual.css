@@ -277,9 +277,8 @@
 
 .user-manual__nav-list--nested {
     margin-top: 0.25rem;
-    margin-left: 0.5rem;
+    margin-left: 0.8rem;
     border-left: 1px solid var(--user-manual-border);
-    padding-left: 0.75rem;
 }
 
 .user-manual__nav-item + .user-manual__nav-item {

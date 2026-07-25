@@ -5,6 +5,7 @@ namespace MuhammadMahediHasan\UserManual;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
+use MuhammadMahediHasan\UserManual\Console\CacheCommand;
 use MuhammadMahediHasan\UserManual\Console\ClearCacheCommand;
 use MuhammadMahediHasan\UserManual\Http\Controllers\DocsController;
 use MuhammadMahediHasan\UserManual\Http\Controllers\PdfController;
@@ -71,6 +72,7 @@ class UserManualServiceProvider extends ServiceProvider
 
             $this->commands([
                 ClearCacheCommand::class,
+                CacheCommand::class,
             ]);
         }
 

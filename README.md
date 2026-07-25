@@ -2,6 +2,8 @@
 
 Markdown-based in-app user manual for Laravel applications.
 
+![Laravel User Manual Screenshot](art/screenshot.png)
+
 **Author:** [muhammadmahedihasan](https://github.com/muhammadmahedihasan)
 
 ## Requirements
@@ -15,9 +17,10 @@ Markdown-based in-app user manual for Laravel applications.
 - Multi-locale support (`/user-manual/en/...`, `/user-manual/bn/...`)
 - Sidebar navigation from `navigation.md`
 - PDF Export (single-page & full manual) powered by mPDF with cover page, TOC, and locale-aware numbering
+- PDF Caching powered by file modification timestamps (`filemtime`)
 - Optional permission-based page and sidebar filtering
 - Publishable config, views, translations, and default assets
-- Self-contained default styling (no Tailwind required)
+- Self-contained default styling
 - Rendered content and navigation caching keyed by file modification time
 - Safe CommonMark defaults with configurable overrides
 - Custom access resolver via facade
@@ -133,7 +136,7 @@ Key options:
 | `pdf.cover_page` | Cover page settings (enabled, title, subtitle, version, date_format) |
 | `ui.vite_assets` | Optional Vite entrypoints to layer host app CSS on top of package defaults |
 
-### PDF Export
+### PDF Export & Caching
 
 The package provides single-page and full-manual PDF exports handled by a dedicated `PdfController` and `PdfGeneratorService` using `mpdf/mpdf`.
 
@@ -141,6 +144,12 @@ The package provides single-page and full-manual PDF exports handled by a dedica
 
 - **Single Page PDF**: `/user-manual/{locale}/{page}/pdf` (named route: `user-manual.pdf.page`)
 - **Full Manual PDF**: `/user-manual/{locale}/export/pdf` (named route: `user-manual.pdf.full`)
+
+#### PDF Caching by File Modification Time
+
+Full manual and single-page PDF exports are automatically cached based on file modification timestamps (`filemtime`).
+- Sub-millisecond response times (`< 5ms`) on cached PDF requests.
+- Editing any `.md` file or `navigation.md` automatically invalidates the old PDF cache key and regenerates output upon the next request.
 
 #### PDF Features & Custom Typography
 
@@ -231,6 +240,10 @@ UserManual::resolveAccessUsing(function ($user, string $slug, array $requirement
 ## Commands
 
 ```bash
+# Regenerate / warm all navigation, markdown, and PDF export caches
+php artisan user-manual:cache
+
+# Clear all user manual cache entries
 php artisan user-manual:clear-cache
 ```
 
