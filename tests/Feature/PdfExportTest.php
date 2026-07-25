@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Support\Facades\Cache;
 use Mpdf\Mpdf;
 use MuhammadMahediHasan\UserManual\Services\PdfGeneratorService;
 
@@ -34,6 +35,62 @@ it('exports full manual as pdf for authenticated users', function () {
     $response->assertOk();
     $response->assertHeader('Content-Type', 'application/pdf');
     expect($response->getContent())->toContain('%PDF-');
+});
+
+it('caches pdf exports and clears them with user-manual:clear-cache', function () {
+    $contentRoot = rtrim(config('user-manual.content_path', resource_path('user-manual')), '/');
+    $version = config('user-manual.version', '1.0');
+    $cachePrefix = config('user-manual.cache_prefix', 'user-manual');
+    $navPath = "{$contentRoot}/{$version}/en/navigation.md";
+
+    $pdfService = app(PdfGeneratorService::class);
+    $maxMtime = $pdfService->calculateMaxLastModified('en', $version, $contentRoot, $navPath);
+
+    // Initial request populates cache
+    $response = $this->actingAs($this->makeAuthenticatable())
+        ->get(route('user-manual.pdf.full', ['locale' => 'en']));
+
+    $response->assertOk();
+    $cacheKey = "{$cachePrefix}.pdf.full.{$version}.en.{$maxMtime}";
+    expect(Cache::has($cacheKey))->toBeTrue();
+
+    // Clear cache command removes the PDF cache key
+    $this->artisan('user-manual:clear-cache')->assertSuccessful();
+    expect(Cache::has($cacheKey))->toBeFalse();
+});
+
+it('invalidates pdf cache when a content file is modified', function () {
+    $contentRoot = rtrim(config('user-manual.content_path', resource_path('user-manual')), '/');
+    $version = config('user-manual.version', '1.0');
+    $cachePrefix = config('user-manual.cache_prefix', 'user-manual');
+    $introPath = "{$contentRoot}/{$version}/en/introduction.md";
+    $navPath = "{$contentRoot}/{$version}/en/navigation.md";
+
+    $pdfService = app(PdfGeneratorService::class);
+
+    // Populate initial cache
+    $this->actingAs($this->makeAuthenticatable())
+        ->get(route('user-manual.pdf.full', ['locale' => 'en']));
+
+    $initialMtime = $pdfService->calculateMaxLastModified('en', $version, $contentRoot, $navPath);
+    $initialCacheKey = "{$cachePrefix}.pdf.full.{$version}.en.{$initialMtime}";
+    expect(Cache::has($initialCacheKey))->toBeTrue();
+
+    // Touch intro file to update timestamp
+    touch($introPath, time() + 5);
+    clearstatcache();
+
+    $newMtime = $pdfService->calculateMaxLastModified('en', $version, $contentRoot, $navPath);
+    $newCacheKey = "{$cachePrefix}.pdf.full.{$version}.en.{$newMtime}";
+
+    expect($newMtime)->toBeGreaterThan($initialMtime);
+    expect(Cache::has($newCacheKey))->toBeFalse();
+
+    // Second request generates fresh cache for updated timestamp
+    $this->actingAs($this->makeAuthenticatable())
+        ->get(route('user-manual.pdf.full', ['locale' => 'en']));
+
+    expect(Cache::has($newCacheKey))->toBeTrue();
 });
 
 it('returns 404 when pdf export is disabled in config', function () {

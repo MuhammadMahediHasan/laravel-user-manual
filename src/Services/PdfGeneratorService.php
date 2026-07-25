@@ -4,6 +4,7 @@ namespace MuhammadMahediHasan\UserManual\Services;
 
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\App;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use League\CommonMark\Exception\CommonMarkException;
@@ -38,23 +39,23 @@ readonly class PdfGeneratorService
             abort(404);
         }
 
-        $markdown = File::get($filePath);
-        $content = $this->markdownRenderer->render($markdown);
-        $title = $this->markdownRenderer->extractTitle($markdown) ?? ucwords(str_replace('-', ' ', $page));
+        $cachePrefix = ManualConfig::string('user-manual.cache_prefix', 'user-manual');
+        $cacheTtl = ManualConfig::integer('user-manual.cache_ttl', 3600);
+        $fileModified = File::lastModified($filePath);
+        $cacheKey = "{$cachePrefix}.pdf.page.{$version}.{$locale}.{$page}.{$fileModified}";
 
-        /** @var view-string $viewName */
-        $viewName = 'user-manual::pdf.page';
-        $html = view($viewName, compact('content', 'title', 'locale'))->render();
+        $pdfBase64 = Cache::remember($cacheKey, $cacheTtl, function () use ($locale, $filePath, $page) {
+            $markdown = File::get($filePath);
+            $content = $this->markdownRenderer->render($markdown);
+            $title = $this->markdownRenderer->extractTitle($markdown) ?? ucwords(str_replace('-', ' ', $page));
 
-        $mpdf = $this->createMpdfInstance($locale);
-        $mpdf->WriteHTML($html);
+            /** @var view-string $viewName */
+            $viewName = 'user-manual::pdf.page';
 
-        $pdfContent = $mpdf->Output('', Destination::STRING_RETURN);
+            return $this->renderMpdfView($viewName, compact('content', 'title', 'locale'), $locale);
+        });
 
-        return response($pdfContent, 200, [
-            'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'inline; filename="'.$page.'.pdf"',
-        ]);
+        return $this->makePdfResponse((string) $pdfBase64, "{$page}.pdf");
     }
 
     /**
@@ -73,44 +74,81 @@ readonly class PdfGeneratorService
             abort(404);
         }
 
-        $tree = $this->navigationParser->buildTree($this->navigationParser->parse($navPath));
-        $filteredTree = $this->permissionResolver->filterNavigation($tree);
-        $items = $this->flattenTreeWithIndex($filteredTree);
+        $maxLastModified = $this->calculateMaxLastModified($locale, $version, $contentRoot, $navPath);
+        $cachePrefix = ManualConfig::string('user-manual.cache_prefix', 'user-manual');
+        $cacheTtl = ManualConfig::integer('user-manual.cache_ttl', 3600);
+        $cacheKey = "{$cachePrefix}.pdf.full.{$version}.{$locale}.{$maxLastModified}";
 
-        $pages = [];
-        foreach ($items as $item) {
-            $slug = $item['slug'];
-            $filePath = "{$contentRoot}/{$version}/{$locale}/{$slug}.md";
+        $pdfBase64 = Cache::remember($cacheKey, $cacheTtl, function () use ($locale, $navPath, $version, $contentRoot) {
+            $tree = $this->navigationParser->buildTree($this->navigationParser->parse($navPath));
+            $filteredTree = $this->permissionResolver->filterNavigation($tree);
+            $items = $this->flattenTreeWithIndex($filteredTree);
 
-            if (File::exists($filePath)) {
-                $markdown = File::get($filePath);
-                $content = $this->markdownRenderer->render($markdown);
-                $rawTitle = $this->markdownRenderer->extractTitle($markdown) ?? $item['title'];
-                $pages[] = [
-                    'slug' => $slug,
-                    'title' => $rawTitle,
-                    'full_title' => "{$item['index']} {$rawTitle}",
-                    'level' => $item['level'],
-                    'index' => $item['index'],
-                    'content' => $content,
-                ];
+            $pages = [];
+            foreach ($items as $item) {
+                $slug = $item['slug'];
+                $filePath = "{$contentRoot}/{$version}/{$locale}/{$slug}.md";
+
+                if (File::exists($filePath)) {
+                    $markdown = File::get($filePath);
+                    $content = $this->markdownRenderer->render($markdown);
+                    $rawTitle = $this->markdownRenderer->extractTitle($markdown) ?? $item['title'];
+                    $pages[] = [
+                        'slug' => $slug,
+                        'title' => $rawTitle,
+                        'full_title' => "{$item['index']} {$rawTitle}",
+                        'level' => $item['level'],
+                        'index' => $item['index'],
+                        'content' => $content,
+                    ];
+                }
             }
-        }
 
-        /** @var view-string $viewName */
-        $viewName = 'user-manual::pdf.document';
-        $html = view($viewName, compact('pages', 'locale'))->render();
+            return $this->renderMpdfView('user-manual::pdf.document', compact('pages', 'locale'), $locale);
+        });
 
-        $mpdf = $this->createMpdfInstance($locale);
-        $mpdf->WriteHTML($html);
-
-        $pdfContent = $mpdf->Output('', Destination::STRING_RETURN);
         $appName = ManualConfig::string('user-manual.ui.app_name', (string) config('app.name', 'user-manual'));
         $filename = Str::slug($appName)."-manual-{$locale}.pdf";
 
-        return response($pdfContent, 200, [
+        return $this->makePdfResponse((string) $pdfBase64, $filename);
+    }
+
+    public function calculateMaxLastModified(string $locale, string $version, string $contentRoot, string $navPath): int
+    {
+        $timestamps = [File::exists($navPath) ? File::lastModified($navPath) : 0];
+        $localeDir = "{$contentRoot}/{$version}/{$locale}";
+
+        if (File::isDirectory($localeDir)) {
+            foreach (File::glob("{$localeDir}/*.md") as $file) {
+                $timestamps[] = File::lastModified($file);
+            }
+        }
+
+        return max($timestamps);
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     *
+     * @throws MpdfException
+     */
+    private function renderMpdfView(string $viewName, array $data, string $locale): string
+    {
+        $html = view($viewName, $data)->render();
+        $mpdf = $this->createMpdfInstance($locale);
+        $mpdf->WriteHTML($html);
+
+        return base64_encode($mpdf->Output('', Destination::STRING_RETURN));
+    }
+
+    private function makePdfResponse(string $pdfBase64, string $filename): Response
+    {
+        $binary = base64_decode($pdfBase64);
+
+        return response($binary, 200, [
             'Content-Type' => 'application/pdf',
             'Content-Disposition' => 'inline; filename="'.$filename.'"',
+            'Content-Length' => (string) strlen($binary),
         ]);
     }
 
@@ -151,6 +189,9 @@ readonly class PdfGeneratorService
         return $result;
     }
 
+    /**
+     * @throws MpdfException
+     */
     public function createMpdfInstance(string $locale = 'en'): Mpdf
     {
         $defaultConfig = (new ConfigVariables)->getDefaults();

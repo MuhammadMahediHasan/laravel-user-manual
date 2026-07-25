@@ -17,9 +17,11 @@
         <img src="{{ $logoUrl }}" class="cover-logo" alt="Logo" />
     @endif
 
+    @if(!$logoUrl)
     <div class="cover-title">
-        {{ config('user-manual.pdf.cover_page.title') ?? (config('app.name', 'Application') . ' ' . __('user-manual::messages.title')) }}
+        {{ config('app.name', 'Application') }}
     </div>
+    @endif
 
     <div class="cover-subtitle">
         @php
