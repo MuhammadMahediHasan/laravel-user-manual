@@ -2,7 +2,7 @@
 
 namespace MuhammadMahediHasan\UserManual\Support;
 
-final class ManualConfig
+final class Config
 {
     public static function string(string $key, string $default): string
     {

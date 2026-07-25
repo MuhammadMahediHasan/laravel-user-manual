@@ -6,13 +6,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     @php
         use MuhammadMahediHasan\UserManual\Support\ManualAssets;
-        use MuhammadMahediHasan\UserManual\Support\ManualConfig;
+        use MuhammadMahediHasan\UserManual\Support\Config;
 
-        $appName = ManualConfig::string('user-manual.ui.app_name', (string) config('app.name', 'Laravel'));
-        $primaryColor = ManualConfig::string('user-manual.ui.primary_color', '#FF2D20');
-        $routeName = ManualConfig::string('user-manual.route_name', 'user-manual.show');
-        $locales = ManualConfig::stringList('user-manual.locales', ['en']);
-        $viteAssets = ManualConfig::array('user-manual.ui.vite_assets', []);
+        $appName = Config::string('user-manual.ui.app_name', (string) config('app.name', 'Laravel'));
+        $primaryColor = Config::string('user-manual.ui.primary_color', '#FF2D20');
+        $routeName = Config::string('user-manual.route_name', 'user-manual.show');
+        $locales = Config::stringList('user-manual.locales', ['en']);
+        $viteAssets = Config::array('user-manual.ui.vite_assets', []);
     @endphp
     <title>{{ $title }} — {{ __('user-manual::messages.title') }} | {{ $appName }}</title>
     <link rel="icon" href="/favicon.ico" sizes="any">
@@ -38,8 +38,8 @@
 
         <aside id="user-manual-sidebar" class="user-manual__sidebar">
             <div class="user-manual__sidebar-header">
-                <a href="{{ url(ManualConfig::string('user-manual.ui.home_url', '/')) }}" class="user-manual__brand">
-                    @if ($logoUrl = ManualConfig::string('user-manual.ui.logo_url', ''))
+                <a href="{{ url(Config::string('user-manual.ui.home_url', '/')) }}" class="user-manual__brand">
+                    @if ($logoUrl = Config::string('user-manual.ui.logo_url', ''))
                         <img src="{{ $logoUrl }}" alt="{{ $appName }}" class="user-manual__brand-logo">
                     @else
                         {{ $appName }}
@@ -73,14 +73,14 @@
 
                     <nav class="user-manual__breadcrumb" aria-label="Breadcrumb">
                         <a
-                            href="{{ route($routeName, ['locale' => $locale, 'page' => ManualConfig::string('user-manual.default_page', 'introduction')]) }}">{{ __('user-manual::messages.title') }}</a>
+                            href="{{ route($routeName, ['locale' => $locale, 'page' => Config::string('user-manual.default_page', 'introduction')]) }}">{{ __('user-manual::messages.title') }}</a>
                         <span class="user-manual__breadcrumb-separator">/</span>
                         <span class="user-manual__breadcrumb-current">{{ $title }}</span>
                     </nav>
                 </div>
 
                 <div class="user-manual__header-end">
-                    @if (ManualConfig::bool('user-manual.pdf.enabled', true))
+                    @if (Config::bool('user-manual.pdf.enabled', true))
                         <div class="user-manual__pdf-actions" style="display: flex; gap: 8px; align-items: center;">
                             <a href="{{ route('user-manual.pdf.page', ['locale' => $locale, 'page' => $page]) }}" target="_blank"
                                 title="Export current page as PDF" class="user-manual__icon-button" style="display: inline-flex; align-items: center; gap: 4px; font-size: 13px; text-decoration: none;">
@@ -111,13 +111,13 @@
                                         'user-manual__locale-link',
                                         'user-manual__locale-link--active' => $locale === $availableLocale,
                                     ])>
-                                    {{ __('user-manual::messages.' . ManualConfig::string('user-manual.locale_labels.' . $availableLocale, $availableLocale)) }}
+                                    {{ __('user-manual::messages.' . Config::string('user-manual.locale_labels.' . $availableLocale, $availableLocale)) }}
                                 </a>
                             @endforeach
                         </div>
                     @endif
 
-                    <a href="{{ url(ManualConfig::string('user-manual.ui.home_url', '/')) }}" target="_blank"
+                    <a href="{{ url(Config::string('user-manual.ui.home_url', '/')) }}" target="_blank"
                         rel="noopener noreferrer" title="{{ __('user-manual::messages.go_to_landing') }}"
                         class="user-manual__icon-button">
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"

@@ -4,7 +4,7 @@ namespace MuhammadMahediHasan\UserManual\Services;
 
 use League\CommonMark\Exception\CommonMarkException;
 use League\CommonMark\GithubFlavoredMarkdownConverter;
-use MuhammadMahediHasan\UserManual\Support\ManualConfig;
+use MuhammadMahediHasan\UserManual\Support\Config;
 
 class MarkdownRenderer
 {
@@ -18,7 +18,7 @@ class MarkdownRenderer
         ];
 
         $this->converter = new GithubFlavoredMarkdownConverter(
-            array_merge($defaults, ManualConfig::array('user-manual.commonmark', []))
+            array_merge($defaults, Config::array('user-manual.commonmark', []))
         );
     }
 

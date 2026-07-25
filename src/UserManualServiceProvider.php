@@ -12,8 +12,8 @@ use MuhammadMahediHasan\UserManual\Services\MarkdownRenderer;
 use MuhammadMahediHasan\UserManual\Services\NavigationParser;
 use MuhammadMahediHasan\UserManual\Services\PdfGeneratorService;
 use MuhammadMahediHasan\UserManual\Services\PermissionResolver;
+use MuhammadMahediHasan\UserManual\Support\Config;
 use MuhammadMahediHasan\UserManual\Support\ManualAssets;
-use MuhammadMahediHasan\UserManual\Support\ManualConfig;
 
 class UserManualServiceProvider extends ServiceProvider
 {
@@ -74,16 +74,16 @@ class UserManualServiceProvider extends ServiceProvider
             ]);
         }
 
-        if (ManualConfig::bool('user-manual.register_routes', true)) {
+        if (Config::bool('user-manual.register_routes', true)) {
             $this->registerRoutes();
         }
     }
 
     protected function ensureDemoDocsExist(): void
     {
-        $contentPath = rtrim(ManualConfig::string('user-manual.content_path', resource_path('user-manual')), '/');
-        $version = ManualConfig::string('user-manual.version', '1.0');
-        $defaultLocale = ManualConfig::string('user-manual.default_locale', 'en');
+        $contentPath = rtrim(Config::string('user-manual.content_path', resource_path('user-manual')), '/');
+        $version = Config::string('user-manual.version', '1.0');
+        $defaultLocale = Config::string('user-manual.default_locale', 'en');
 
         $targetDir = "{$contentPath}/{$version}/{$defaultLocale}";
         $stubsDir = __DIR__.'/../stubs/docs/1.0/en';
@@ -122,12 +122,12 @@ class UserManualServiceProvider extends ServiceProvider
 
     protected function registerRoutes(): void
     {
-        $prefix = trim(ManualConfig::string('user-manual.route_prefix', 'user-manual'), '/');
-        $defaultLocale = ManualConfig::string('user-manual.default_locale', 'en');
-        $defaultPage = ManualConfig::string('user-manual.default_page', 'introduction');
-        $locales = implode('|', ManualConfig::stringList('user-manual.locales', ['en']));
-        $middleware = ManualConfig::stringList('user-manual.middleware', ['web']);
-        $routeName = ManualConfig::string('user-manual.route_name', 'user-manual.show');
+        $prefix = trim(Config::string('user-manual.route_prefix', 'user-manual'), '/');
+        $defaultLocale = Config::string('user-manual.default_locale', 'en');
+        $defaultPage = Config::string('user-manual.default_page', 'introduction');
+        $locales = implode('|', Config::stringList('user-manual.locales', ['en']));
+        $middleware = Config::stringList('user-manual.middleware', ['web']);
+        $routeName = Config::string('user-manual.route_name', 'user-manual.show');
 
         Route::get('vendor/user-manual/{path}', function (string $path) {
             $normalizedPath = str_replace(['..', '\\'], '', $path);

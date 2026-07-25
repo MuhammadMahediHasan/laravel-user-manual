@@ -13,7 +13,7 @@ use Mpdf\Config\FontVariables;
 use Mpdf\Mpdf;
 use Mpdf\MpdfException;
 use Mpdf\Output\Destination;
-use MuhammadMahediHasan\UserManual\Support\ManualConfig;
+use MuhammadMahediHasan\UserManual\Support\Config;
 
 readonly class PdfGeneratorService
 {
@@ -31,16 +31,16 @@ readonly class PdfGeneratorService
     {
         App::setLocale($locale);
 
-        $version = ManualConfig::string('user-manual.version', '1.0');
-        $contentRoot = rtrim(ManualConfig::string('user-manual.content_path', resource_path('user-manual')), '/');
+        $version = Config::string('user-manual.version', '1.0');
+        $contentRoot = rtrim(Config::string('user-manual.content_path', resource_path('user-manual')), '/');
         $filePath = "{$contentRoot}/{$version}/{$locale}/{$page}.md";
 
         if (! File::exists($filePath)) {
             abort(404);
         }
 
-        $cachePrefix = ManualConfig::string('user-manual.cache_prefix', 'user-manual');
-        $cacheTtl = ManualConfig::integer('user-manual.cache_ttl', 3600);
+        $cachePrefix = Config::string('user-manual.cache_prefix', 'user-manual');
+        $cacheTtl = Config::integer('user-manual.cache_ttl', 3600);
         $fileModified = File::lastModified($filePath);
         $cacheKey = "{$cachePrefix}.pdf.page.{$version}.{$locale}.{$page}.{$fileModified}";
 
@@ -66,8 +66,8 @@ readonly class PdfGeneratorService
     {
         App::setLocale($locale);
 
-        $version = ManualConfig::string('user-manual.version', '1.0');
-        $contentRoot = rtrim(ManualConfig::string('user-manual.content_path', resource_path('user-manual')), '/');
+        $version = Config::string('user-manual.version', '1.0');
+        $contentRoot = rtrim(Config::string('user-manual.content_path', resource_path('user-manual')), '/');
         $navPath = "{$contentRoot}/{$version}/{$locale}/navigation.md";
 
         if (! File::exists($navPath)) {
@@ -75,8 +75,8 @@ readonly class PdfGeneratorService
         }
 
         $maxLastModified = $this->calculateMaxLastModified($locale, $version, $contentRoot, $navPath);
-        $cachePrefix = ManualConfig::string('user-manual.cache_prefix', 'user-manual');
-        $cacheTtl = ManualConfig::integer('user-manual.cache_ttl', 3600);
+        $cachePrefix = Config::string('user-manual.cache_prefix', 'user-manual');
+        $cacheTtl = Config::integer('user-manual.cache_ttl', 3600);
         $cacheKey = "{$cachePrefix}.pdf.full.{$version}.{$locale}.{$maxLastModified}";
 
         $pdfBase64 = Cache::remember($cacheKey, $cacheTtl, function () use ($locale, $navPath, $version, $contentRoot) {
@@ -107,7 +107,7 @@ readonly class PdfGeneratorService
             return $this->renderMpdfView('user-manual::pdf.document', compact('pages', 'locale'), $locale);
         });
 
-        $appName = ManualConfig::string('user-manual.ui.app_name', (string) config('app.name', 'user-manual'));
+        $appName = Config::string('user-manual.ui.app_name', (string) config('app.name', 'user-manual'));
         $filename = Str::slug($appName)."-manual-{$locale}.pdf";
 
         return $this->makePdfResponse((string) $pdfBase64, $filename);
@@ -200,8 +200,8 @@ readonly class PdfGeneratorService
         $defaultFontConfig = (new FontVariables)->getDefaults();
         $fontData = $defaultFontConfig['fontdata'];
 
-        $customFontDirs = ManualConfig::array('user-manual.pdf.fonts.font_dirs', []);
-        $rawCustomFontData = ManualConfig::array('user-manual.pdf.fonts.font_data', []);
+        $customFontDirs = Config::array('user-manual.pdf.fonts.font_dirs', []);
+        $rawCustomFontData = Config::array('user-manual.pdf.fonts.font_data', []);
         $customFontData = [];
 
         foreach ($rawCustomFontData as $fontKey => $fontSettings) {
@@ -223,20 +223,20 @@ readonly class PdfGeneratorService
         $mpdfConfig = [
             'fontDir' => array_merge($fontDirs, $customFontDirs),
             'fontdata' => array_merge($fontData, $customFontData),
-            'default_font' => ManualConfig::string('user-manual.pdf.default_font', 'sans-serif'),
+            'default_font' => Config::string('user-manual.pdf.default_font', 'sans-serif'),
             'defaultPageNumStyle' => $locale === 'bn' ? 'bengali' : '1',
             'autoScriptToLang' => true,
             'autoLangToFont' => false,
-            'tempDir' => ManualConfig::string('user-manual.pdf.temp_dir', sys_get_temp_dir()),
+            'tempDir' => Config::string('user-manual.pdf.temp_dir', sys_get_temp_dir()),
             'mode' => 'utf-8',
-            'format' => ManualConfig::string('user-manual.pdf.paper_format', 'A4'),
-            'orientation' => ManualConfig::string('user-manual.pdf.orientation', 'P'),
-            'margin_left' => ManualConfig::integer('user-manual.pdf.margins.left', 15),
-            'margin_right' => ManualConfig::integer('user-manual.pdf.margins.right', 15),
-            'margin_top' => ManualConfig::integer('user-manual.pdf.margins.top', 16),
-            'margin_bottom' => ManualConfig::integer('user-manual.pdf.margins.bottom', 16),
-            'margin_header' => ManualConfig::integer('user-manual.pdf.margins.header', 9),
-            'margin_footer' => ManualConfig::integer('user-manual.pdf.margins.footer', 9),
+            'format' => Config::string('user-manual.pdf.paper_format', 'A4'),
+            'orientation' => Config::string('user-manual.pdf.orientation', 'P'),
+            'margin_left' => Config::integer('user-manual.pdf.margins.left', 15),
+            'margin_right' => Config::integer('user-manual.pdf.margins.right', 15),
+            'margin_top' => Config::integer('user-manual.pdf.margins.top', 16),
+            'margin_bottom' => Config::integer('user-manual.pdf.margins.bottom', 16),
+            'margin_header' => Config::integer('user-manual.pdf.margins.header', 9),
+            'margin_footer' => Config::integer('user-manual.pdf.margins.footer', 9),
         ];
 
         return new Mpdf($mpdfConfig);

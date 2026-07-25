@@ -1,8 +1,8 @@
 @php
-    use MuhammadMahediHasan\UserManual\Support\ManualConfig;
+    use MuhammadMahediHasan\UserManual\Support\Config;
 
-    $routePrefix = trim(ManualConfig::string('user-manual.route_prefix', 'user-manual'), '/');
-    $locales = ManualConfig::stringList('user-manual.locales', ['en']);
+    $routePrefix = trim(Config::string('user-manual.route_prefix', 'user-manual'), '/');
+    $locales = Config::stringList('user-manual.locales', ['en']);
 
     $resolveSlug = function (string $url) use ($routePrefix, $locales): string {
         $path = trim(parse_url($url, PHP_URL_PATH) ?? '', '/');
@@ -45,7 +45,13 @@
             >
                 <span class="user-manual__nav-label">{{ $item['title'] }}</span>
                 @if($item['external'])
-                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="user-manual__nav-external" aria-hidden="true"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                         class="user-manual__nav-external" aria-hidden="true">
+                        <path d="M15 3h6v6"/>
+                        <path d="M10 14 21 3"/>
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                    </svg>
                 @endif
             </a>
 

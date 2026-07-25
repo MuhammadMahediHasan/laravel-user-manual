@@ -7,7 +7,7 @@ use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
 use MuhammadMahediHasan\UserManual\Services\PdfGeneratorService;
 use MuhammadMahediHasan\UserManual\Services\PermissionResolver;
-use MuhammadMahediHasan\UserManual\Support\ManualConfig;
+use MuhammadMahediHasan\UserManual\Support\Config;
 
 class PdfController extends Controller
 {
@@ -21,9 +21,9 @@ class PdfController extends Controller
      */
     public function exportPagePdf(Request $request, string $locale, string $page): Response
     {
-        abort_unless(ManualConfig::bool('user-manual.pdf.enabled', true), 404);
+        abort_unless(Config::bool('user-manual.pdf.enabled', true), 404);
 
-        $locales = ManualConfig::stringList('user-manual.locales', ['en']);
+        $locales = Config::stringList('user-manual.locales', ['en']);
         if (! in_array($locale, $locales, true)) {
             abort(404);
         }
@@ -38,9 +38,9 @@ class PdfController extends Controller
      */
     public function exportFullPdf(Request $request, string $locale): Response
     {
-        abort_unless(ManualConfig::bool('user-manual.pdf.enabled', true), 404);
+        abort_unless(Config::bool('user-manual.pdf.enabled', true), 404);
 
-        $locales = ManualConfig::stringList('user-manual.locales', ['en']);
+        $locales = Config::stringList('user-manual.locales', ['en']);
         if (! in_array($locale, $locales, true)) {
             abort(404);
         }

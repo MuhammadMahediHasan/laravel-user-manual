@@ -6,7 +6,7 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\File;
 use MuhammadMahediHasan\UserManual\Services\PdfGeneratorService;
-use MuhammadMahediHasan\UserManual\Support\ManualConfig;
+use MuhammadMahediHasan\UserManual\Support\Config;
 
 class ClearCacheCommand extends Command
 {
@@ -16,13 +16,13 @@ class ClearCacheCommand extends Command
 
     public function handle(): int
     {
-        $prefix = ManualConfig::string('user-manual.cache_prefix', 'user-manual');
-        $version = ManualConfig::string('user-manual.version', '1.0');
-        $contentRoot = rtrim(ManualConfig::string('user-manual.content_path', resource_path('user-manual')), '/');
+        $prefix = Config::string('user-manual.cache_prefix', 'user-manual');
+        $version = Config::string('user-manual.version', '1.0');
+        $contentRoot = rtrim(Config::string('user-manual.content_path', resource_path('user-manual')), '/');
         $pdfService = app(PdfGeneratorService::class);
         $cleared = 0;
 
-        foreach (ManualConfig::stringList('user-manual.locales', ['en']) as $locale) {
+        foreach (Config::stringList('user-manual.locales', ['en']) as $locale) {
             $localePath = "{$contentRoot}/{$version}/{$locale}";
             $navPath = "{$localePath}/navigation.md";
 

@@ -3,7 +3,7 @@
 namespace MuhammadMahediHasan\UserManual\Services;
 
 use Illuminate\Contracts\Auth\Authenticatable;
-use MuhammadMahediHasan\UserManual\Support\ManualConfig;
+use MuhammadMahediHasan\UserManual\Support\Config;
 use MuhammadMahediHasan\UserManual\UserManualManager;
 
 class PermissionResolver
@@ -82,8 +82,8 @@ class PermissionResolver
 
     public function slugFromUrl(string $url): string
     {
-        $routePrefix = trim(ManualConfig::string('user-manual.route_prefix', 'user-manual'), '/');
-        $locales = ManualConfig::stringList('user-manual.locales', ['en']);
+        $routePrefix = trim(Config::string('user-manual.route_prefix', 'user-manual'), '/');
+        $locales = Config::stringList('user-manual.locales', ['en']);
 
         $path = trim(parse_url($url, PHP_URL_PATH) ?? '', '/');
         $segments = explode('/', $path);
@@ -132,7 +132,7 @@ class PermissionResolver
 
     private function isSuperAdmin(Authenticatable $user): bool
     {
-        $roles = ManualConfig::stringList('user-manual.super_admin_roles', []);
+        $roles = Config::stringList('user-manual.super_admin_roles', []);
 
         if ($roles === []) {
             return false;
@@ -173,7 +173,7 @@ class PermissionResolver
             return $user;
         }
 
-        foreach (ManualConfig::stringList('user-manual.auth_guards', []) as $guard) {
+        foreach (Config::stringList('user-manual.auth_guards', []) as $guard) {
             if ($user = auth($guard)->user()) {
                 return $user;
             }
