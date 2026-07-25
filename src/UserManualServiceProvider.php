@@ -74,7 +74,7 @@ class UserManualServiceProvider extends ServiceProvider
         }
 
         if (Config::bool('user-manual.register_routes', true)) {
-            $this->registerRoutes();
+            $this->loadRoutesFrom(__DIR__.'/../routes/web.php');
         }
     }
 
@@ -117,10 +117,5 @@ class UserManualServiceProvider extends ServiceProvider
         if (is_dir($publishedViews)) {
             $this->loadViewsFrom($publishedViews, 'user-manual');
         }
-    }
-
-    protected function registerRoutes(): void
-    {
-        $this->loadRoutesFrom(__DIR__.'/../routes/web.php');
     }
 }
