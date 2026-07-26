@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\File;
 use Mpdf\Mpdf;
 use MuhammadMahediHasan\UserManual\Services\PdfGeneratorService;
 
@@ -91,6 +92,28 @@ it('invalidates pdf cache when a content file is modified', function () {
         ->get(route('user-manual.pdf.full', ['locale' => 'en']));
 
     expect(Cache::has($newCacheKey))->toBeTrue();
+});
+
+it('handles large html payloads by chunking WriteHTML calls', function () {
+    $contentRoot = rtrim(config('user-manual.content_path', resource_path('user-manual')), '/');
+    $version = config('user-manual.version', '1.0');
+    $largeFilePath = "{$contentRoot}/{$version}/en/large-page.md";
+
+    // Generate large markdown file (~300 KB)
+    $paragraphs = array_fill(0, 1500, "Paragraph content with **bold formatting** and `inline code` for testing large HTML payload.\n\n");
+    File::put($largeFilePath, "# Large Documentation Page\n\n".implode('', $paragraphs));
+
+    try {
+        $pdfService = app(PdfGeneratorService::class);
+        $response = $pdfService->generatePagePdf('en', 'large-page');
+
+        expect($response->getStatusCode())->toBe(200);
+        expect($response->getContent())->toContain('%PDF-');
+    } finally {
+        if (File::exists($largeFilePath)) {
+            File::delete($largeFilePath);
+        }
+    }
 });
 
 it('returns 404 when pdf export is disabled in config', function () {

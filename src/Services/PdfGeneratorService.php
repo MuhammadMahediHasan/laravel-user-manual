@@ -136,7 +136,16 @@ readonly class PdfGeneratorService
     {
         $html = view($viewName, $data)->render();
         $mpdf = $this->createMpdfInstance($locale);
-        $mpdf->WriteHTML($html);
+
+        $chunkSize = 250000;
+        if (strlen($html) > $chunkSize) {
+            $chunks = str_split($html, $chunkSize);
+            foreach ($chunks as $chunk) {
+                $mpdf->WriteHTML($chunk);
+            }
+        } else {
+            $mpdf->WriteHTML($html);
+        }
 
         return base64_encode($mpdf->Output('', Destination::STRING_RETURN));
     }
