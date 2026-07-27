@@ -184,10 +184,26 @@ return [
     'default_locale' => 'en',
     'cache_ttl' => 3600,
     'cache_prefix' => 'user-manual',
+    // Merged over safe defaults (html_input: escape, allow_unsafe_links: false).
+    // Override only if you trust all markdown authors.
+    'commonmark' => [],
     'super_admin_roles' => [],
     'permission-mapper' => [],
 ];
 ```
+
+### CommonMark options
+
+Markdown is rendered with League CommonMark (GitHub-flavored). Package defaults escape raw HTML and block unsafe links. Values under `commonmark` are merged on top of those defaults and passed to `GithubFlavoredMarkdownConverter`:
+
+```php
+'commonmark' => [
+    'html_input' => 'allow',
+    'allow_unsafe_links' => true,
+],
+```
+
+Only do this if you trust every markdown author; allowing raw HTML increases stored XSS risk because rendered content is output unescaped in the manual view.
 
 ### Customizing UI & Host Application Styles
 The package publishes pre-scoped assets (`user-manual.css` and `user-manual.js`) to `public/vendor/user-manual/`. To layer host application styles (such as Tailwind CSS entrypoints) on top of the manual layout, configure `ui.vite_assets`:
