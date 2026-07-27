@@ -7,11 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Full-manual PDF warming via `user-manual:cache` using synthetic access profiles (`pdf.warm_full`, `pdf.warm_profiles`)
+- On-disk PDF cache payloads (`pdf.cache_path`) so large manuals are not limited by database cache `mediumtext` size
+- Permission-scoped full PDF cache keys (access signature) so restricted pages cannot leak across viewers
+- Safe HTML chunking for mPDF `WriteHTML` (tag-boundary and UTF-8 safe) for large documents
+- Image `src` resolution for PDF export (root-relative public paths rewritten for mPDF)
+- `AccessProfile` helper for console full-PDF warming without a real login session
+
 ### Changed
 
 - Default content directory renamed from `resources/docs` to `resources/user-manual`
+- `user-manual:cache` warms configured full-manual PDF variants; it no longer skips full exports or caches an empty console variant
+- `user-manual:clear-cache` clears full-PDF index entries and on-disk PDF payloads
+- README documents PDF caching, warm profiles, and a note that large full PDFs may need a higher host PHP `memory_limit`
 
-## [1.0.0] - 2026-07-21
+### Fixed
+
+- Docs pages no longer 500 when `navigation.md` is missing
+- Full PDF export no longer fails when the cached payload exceeds MySQL `mediumtext`
+- PDF images that used root-relative URLs are embedded correctly
+
+## [1.2.4] - 2026-07-27
 
 ### Added
 

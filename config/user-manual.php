@@ -126,6 +126,34 @@ return [
         'temp_dir' => sys_get_temp_dir(),
 
         /*
+        | Full-manual PDF warming (user-manual:cache)
+        |
+        | Full manuals are permission-scoped. The cache command warms one PDF
+        | per configured access profile so the first matching web export is a
+        | cache hit. Each distinct accessible page set is a large cached blob —
+        | more profiles mean longer warm runs and more cache storage.
+        |
+        | Profile shapes:
+        | - []                   → authenticated user, no extra permissions
+        | - ['perm_a', 'perm_b'] → user with those permissions
+        | - ['roles' => [...]]   → user with those roles (may also list perms)
+        | - ['*'] or 'all'       → unrestricted access to every page
+        |
+        | Set warm_full to false to skip full-manual warming entirely.
+        */
+        'warm_full' => true,
+        'warm_profiles' => [
+            [],
+        ],
+
+        /*
+        | Directory for on-disk PDF cache payloads. Full manuals (and large
+        | page PDFs) exceed MySQL mediumtext (~16 MB), so the Laravel cache
+        | only stores a small marker while the base64 payload lives here.
+        */
+        'cache_path' => storage_path('app/user-manual/pdfs'),
+
+        /*
         | Custom Fonts Settings
         |
         | 'font_dirs' => [ resource_path('fonts') ],

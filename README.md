@@ -246,6 +246,34 @@ Publish views (`php artisan vendor:publish --tag=user-manual-views`) to customiz
 ### PDF Caching
 PDF exports are cached using keys derived from source file modification timestamps (`filemtime`). Updating any Markdown content file or `navigation.md` automatically invalidates stale PDF caches.
 
+**Full manuals are permission-scoped.** Each distinct accessible page set gets its own cache entry (keyed by an access signature), so a restricted viewer never receives a broader user's PDF.
+
+**Payloads are stored on disk**, not in the Laravel cache value column. Full manuals often exceed MySQL `mediumtext` (~16 MB). The cache store only keeps a small `'disk'` marker for TTL and invalidation; the base64 PDF lives under `pdf.cache_path` (default `storage/app/user-manual/pdfs`).
+
+```php
+'pdf' => [
+    // On-disk directory for PDF cache payloads
+    'cache_path' => storage_path('app/user-manual/pdfs'),
+
+    // Warm full-manual PDFs during `php artisan user-manual:cache`
+    'warm_full' => true,
+
+    // One full PDF per distinct accessible page set. Profile shapes:
+    // - []                   → authenticated user, no extra permissions
+    // - ['perm_a', 'perm_b'] → user with those permissions
+    // - ['roles' => [...]]   → user with those roles (may also list perms)
+    // - ['*'] or 'all'       → unrestricted access to every page
+    'warm_profiles' => [
+        [],
+        // ['material_access'],
+    ],
+],
+```
+
+With the default profile (`[]`), `user-manual:cache` warms the full manual that a normal authenticated user would download. Add more profiles when you have restricted pages so those variants are warm too. Set `warm_full` to `false` to skip full-manual warming (page PDFs are still warmed).
+
+> **Note:** Large full-manual PDFs with images are memory-heavy. On a low PHP `memory_limit`, generating or downloading a big full PDF may fail with a memory exhaustion error. Raise the limit in your host `php.ini`, FPM pool, or queue worker if that happens.
+
 ---
 
 ## Permissions
@@ -314,12 +342,14 @@ To enable, copy `SKILL.md` into your workspace skill directory (e.g., `.claude/s
 ## Commands
 
 ```bash
-# Pre-render and warm all navigation trees, markdown pages, and PDF exports
+# Pre-render navigation, markdown HTML, page PDFs, and configured full-manual PDF variants
 php artisan user-manual:cache
 
-# Clear all cached navigation, rendered markdown, and PDF entries
+# Clear cached navigation, rendered markdown, PDF markers, and on-disk PDF payloads
 php artisan user-manual:clear-cache
 ```
+
+`user-manual:cache` clears first, then warms. Full-manual warming uses synthetic access profiles (`pdf.warm_profiles`) so the console never caches an empty “no user” manual. After a successful warm, the first matching web full-export is a cache hit.
 
 ---
 

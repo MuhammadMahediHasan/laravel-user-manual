@@ -22,6 +22,10 @@ class ClearCacheCommand extends Command
         $pdfService = app(PdfGeneratorService::class);
         $cleared = 0;
 
+        // Drop on-disk PDF payloads first so orphaned files from prior keys
+        // (old mtimes / access signatures) do not accumulate.
+        $pdfService->flushPdfCacheFiles();
+
         foreach (Config::stringList('user-manual.locales', ['en']) as $locale) {
             $localePath = "{$contentRoot}/{$version}/{$locale}";
             $navPath = "{$localePath}/navigation.md";
@@ -30,12 +34,10 @@ class ClearCacheCommand extends Command
                 $cleared++;
             }
 
-            if (File::exists($navPath)) {
-                $maxLastModified = $pdfService->calculateMaxLastModified($locale, $version, $contentRoot, $navPath);
-                if (Cache::forget("{$prefix}.pdf.full.{$version}.{$locale}.{$maxLastModified}")) {
-                    $cleared++;
-                }
-            }
+            // Full-manual PDFs are cached per accessible page set, so they are
+            // tracked in an index and cleared as a group rather than by a
+            // single reconstructable key.
+            $cleared += $pdfService->forgetFullPdfCaches($version, $locale);
 
             if (! File::isDirectory($localePath)) {
                 continue;
@@ -54,7 +56,7 @@ class ClearCacheCommand extends Command
                     $cleared++;
                 }
 
-                if (Cache::forget("{$prefix}.pdf.page.{$version}.{$locale}.{$page}.{$mtime}")) {
+                if ($pdfService->forgetPdf("{$prefix}.pdf.page.{$version}.{$locale}.{$page}.{$mtime}")) {
                     $cleared++;
                 }
             }

@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\File;
 
 it('redirects guests to login', function () {
     $this->get(route('user-manual.show', ['locale' => 'en', 'page' => 'introduction']))
@@ -79,6 +80,23 @@ it('returns not found for invalid locales', function () {
     $this->actingAs($this->makeAuthenticatable())
         ->get('/user-manual/fr/introduction')
         ->assertNotFound();
+});
+
+it('renders a page even when navigation.md is missing', function () {
+    $contentRoot = sys_get_temp_dir().'/user-manual-nonav-'.uniqid();
+    $localeDir = "{$contentRoot}/1.0/en";
+    File::ensureDirectoryExists($localeDir);
+    File::put("{$localeDir}/lonely.md", "# Lonely Page\n\nRenders without a sidebar.\n");
+    config(['user-manual.content_path' => $contentRoot]);
+
+    try {
+        $this->actingAs($this->makeAuthenticatable())
+            ->get(route('user-manual.show', ['locale' => 'en', 'page' => 'lonely']))
+            ->assertOk()
+            ->assertSee('Renders without a sidebar.', false);
+    } finally {
+        File::deleteDirectory($contentRoot);
+    }
 });
 
 it('returns not found for missing pages', function () {

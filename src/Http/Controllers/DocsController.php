@@ -53,7 +53,7 @@ class DocsController extends Controller
         $cachePrefix = Config::string('user-manual.cache_prefix', 'user-manual');
         $cacheTtl = Config::integer('user-manual.cache_ttl', 3600);
         $fileModified = File::lastModified($filePath);
-        $navModified = File::lastModified($navPath);
+        $navModified = File::exists($navPath) ? File::lastModified($navPath) : 0;
 
         $content = Cache::remember("{$cachePrefix}.{$version}.{$locale}.{$page}.{$fileModified}", $cacheTtl, function () use ($markdown) {
             return $this->markdownRenderer->render($markdown);
