@@ -248,7 +248,7 @@ PDF exports are cached using keys derived from source file modification timestam
 
 **Full manuals are permission-scoped.** Each distinct accessible page set gets its own cache entry (keyed by an access signature), so a restricted viewer never receives a broader user's PDF.
 
-**Payloads are stored on disk**, not in the Laravel cache value column. Full manuals often exceed MySQL `mediumtext` (~16 MB). The cache store only keeps a small `'disk'` marker for TTL and invalidation; the base64 PDF lives under `pdf.cache_path` (default `storage/app/user-manual/pdfs`).
+**Payloads are stored on disk**, not in the Laravel cache value column. The cache store only keeps a small `'disk'` marker for TTL and invalidation; the base64 PDF lives under `pdf.cache_path` (default `storage/app/user-manual/pdfs`).
 
 ```php
 'pdf' => [
