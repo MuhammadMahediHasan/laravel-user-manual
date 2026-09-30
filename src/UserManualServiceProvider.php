@@ -11,7 +11,9 @@ use MuhammadMahediHasan\UserManual\Services\NavigationParser;
 use MuhammadMahediHasan\UserManual\Services\PdfGeneratorService;
 use MuhammadMahediHasan\UserManual\Services\PermissionResolver;
 use MuhammadMahediHasan\UserManual\Support\Config;
+use MuhammadMahediHasan\UserManual\Support\CurrentManual;
 use MuhammadMahediHasan\UserManual\Support\ManualAssets;
+use MuhammadMahediHasan\UserManual\Support\ManualRegistry;
 
 class UserManualServiceProvider extends ServiceProvider
 {
@@ -20,6 +22,8 @@ class UserManualServiceProvider extends ServiceProvider
         $this->mergeConfigFrom(__DIR__.'/../config/user-manual.php', 'user-manual');
 
         $this->app->singleton(UserManualManager::class);
+        $this->app->singleton(CurrentManual::class);
+        $this->app->singleton(ManualRegistry::class);
 
         $this->app->bind(PermissionResolver::class, fn ($app) => new PermissionResolver(
             user: null,

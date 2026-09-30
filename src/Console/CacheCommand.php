@@ -11,10 +11,12 @@ use MuhammadMahediHasan\UserManual\Services\MarkdownRenderer;
 use MuhammadMahediHasan\UserManual\Services\NavigationParser;
 use MuhammadMahediHasan\UserManual\Services\PdfGeneratorService;
 use MuhammadMahediHasan\UserManual\Support\Config;
+use MuhammadMahediHasan\UserManual\Support\CurrentManual;
+use MuhammadMahediHasan\UserManual\Support\ManualRegistry;
 
 class CacheCommand extends Command
 {
-    protected $signature = 'user-manual:cache';
+    protected $signature = 'user-manual:cache {manual? : Manual name to warm}';
 
     protected $description = 'Warm and pre-generate user manual navigation, markdown, and PDF export caches';
 
@@ -26,9 +28,56 @@ class CacheCommand extends Command
         MarkdownRenderer $markdownRenderer,
         NavigationParser $navigationParser,
         PdfGeneratorService $pdfGeneratorService,
+        ManualRegistry $manuals,
+        CurrentManual $currentManual,
     ): int {
-        $this->call('user-manual:clear-cache');
+        $manualName = $this->argument('manual');
+        $manualName = is_string($manualName) ? $manualName : null;
+        $selected = $manuals->selected($manualName);
 
+        if ($selected === []) {
+            $this->components->error("Unknown user manual [{$manualName}].");
+
+            return self::FAILURE;
+        }
+
+        $this->call('user-manual:clear-cache', array_filter([
+            'manual' => $manualName,
+        ]));
+
+        $totalPages = 0;
+        $totalPdfs = 0;
+        $totalFullPdfs = 0;
+
+        foreach ($selected as $manual) {
+            $counts = $currentManual->using(
+                $manual->implicit ? null : $manual->id,
+                fn (): array => $this->warmActive($markdownRenderer, $navigationParser, $pdfGeneratorService),
+            );
+
+            $totalPages += $counts['pages'];
+            $totalPdfs += $counts['pdfs'];
+            $totalFullPdfs += $counts['full'];
+        }
+
+        $this->components->info(
+            "Regenerated user manual caches: {$totalPages} pages, {$totalPdfs} page PDF exports, and {$totalFullPdfs} full manual PDF exports."
+        );
+
+        return self::SUCCESS;
+    }
+
+    /**
+     * @return array{pages: int, pdfs: int, full: int}
+     *
+     * @throws MpdfException
+     * @throws CommonMarkException
+     */
+    private function warmActive(
+        MarkdownRenderer $markdownRenderer,
+        NavigationParser $navigationParser,
+        PdfGeneratorService $pdfGeneratorService,
+    ): array {
         $prefix = Config::string('user-manual.cache_prefix', 'user-manual');
         $version = Config::string('user-manual.version', '1.0');
         $contentRoot = rtrim(Config::string('user-manual.content_path', resource_path('user-manual')), '/');
@@ -107,10 +156,10 @@ class CacheCommand extends Command
             }
         }
 
-        $this->components->info(
-            "Regenerated user manual caches: {$totalPages} pages, {$totalPdfs} page PDF exports, and {$totalFullPdfs} full manual PDF exports."
-        );
-
-        return self::SUCCESS;
+        return [
+            'pages' => $totalPages,
+            'pdfs' => $totalPdfs,
+            'full' => $totalFullPdfs,
+        ];
     }
 }

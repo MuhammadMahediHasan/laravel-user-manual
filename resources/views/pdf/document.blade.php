@@ -2,18 +2,19 @@
 
 @section('content')
     @php
+        use MuhammadMahediHasan\UserManual\Support\Config;
         use MuhammadMahediHasan\UserManual\Support\ManualNumber;
 
         $locale = $locale ?? app()->getLocale();
     @endphp
 
-    @if(config('user-manual.pdf.cover_page.enabled', true))
-        @include(config('user-manual.pdf.cover_page.view', 'user-manual::pdf.cover'), ['locale' => $locale])
+    @if(Config::bool('user-manual.pdf.cover_page.enabled', true))
+        @include(Config::string('user-manual.pdf.cover_page.view', 'user-manual::pdf.cover'), ['locale' => $locale])
         <div class="page-break"></div>
     @endif
 
     <div class="toc-container">
-        <tocpagebreak links="1" font="{{ config('user-manual.pdf.default_font', 'sans-serif') }}" toc-font="{{ config('user-manual.pdf.default_font', 'sans-serif') }}" toc-margin-top="10" toc-margin-bottom="10"></tocpagebreak>
+        <tocpagebreak links="1" font="{{ Config::string('user-manual.pdf.default_font', 'sans-serif') }}" toc-font="{{ Config::string('user-manual.pdf.default_font', 'sans-serif') }}" toc-margin-top="10" toc-margin-bottom="10"></tocpagebreak>
     </div>
 
     @foreach($pages as $index => $item)

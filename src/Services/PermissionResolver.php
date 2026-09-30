@@ -4,6 +4,8 @@ namespace MuhammadMahediHasan\UserManual\Services;
 
 use Illuminate\Contracts\Auth\Authenticatable;
 use MuhammadMahediHasan\UserManual\Support\Config;
+use MuhammadMahediHasan\UserManual\Support\ManualPath;
+use MuhammadMahediHasan\UserManual\Support\ManualRegistry;
 use MuhammadMahediHasan\UserManual\UserManualManager;
 
 class PermissionResolver
@@ -25,7 +27,10 @@ class PermissionResolver
             return true;
         }
 
-        $requirements = config("user-manual.permission-mapper.{$slug}");
+        $requirements = app(ManualRegistry::class)->current()->resolve(
+            'permission-mapper.'.$slug,
+            config("user-manual.permission-mapper.{$slug}"),
+        );
 
         if ($requirements === null || $this->requiresNoPermissionCheck($requirements)) {
             return true;
@@ -82,21 +87,13 @@ class PermissionResolver
 
     public function slugFromUrl(string $url): string
     {
-        $routePrefix = trim(Config::string('user-manual.route_prefix', 'user-manual'), '/');
+        $routePrefix = trim(Config::string(
+            'user-manual.public_prefix',
+            Config::string('user-manual.route_prefix', 'user-manual'),
+        ), '/');
         $locales = Config::stringList('user-manual.locales', ['en']);
 
-        $path = trim(parse_url($url, PHP_URL_PATH) ?? '', '/');
-        $segments = explode('/', $path);
-
-        if ($segments[0] === $routePrefix && in_array($segments[1] ?? '', $locales, true)) {
-            return $segments[2] ?? '';
-        }
-
-        if ($segments[0] === $routePrefix) {
-            return $segments[1] ?? '';
-        }
-
-        return basename($path);
+        return ManualPath::slug($url, $routePrefix, $locales);
     }
 
     private function requiresNoPermissionCheck(mixed $requirements): bool

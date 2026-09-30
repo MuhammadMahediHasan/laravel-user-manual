@@ -32,6 +32,43 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Manuals
+    |--------------------------------------------------------------------------
+    |
+    | Leave this empty for one manual configured by the keys above.
+    |
+    | Set it when one application serves more than one manual. Each entry
+    | inherits those keys and overrides only what it sets. A manual is its
+    | content_path plus a route that does not collide with another manual.
+    | Give each manual its own route_prefix, or pass any Laravel route-group
+    | attributes (domain, prefix, middleware, where) through `route`.
+    | If both `middleware` and `route.middleware` are set, the route-group
+    | list is the one registered.
+    |
+    | Named manuals default their route names to "{name}.user-manual.show"
+    | and their cache prefix to "{cache_prefix}.{name}" unless overridden.
+    |
+    | 'manuals' => [
+    |     'staff' => [
+    |         'content_path' => resource_path('user-manual/staff'),
+    |         'route_prefix' => 'manual',
+    |         'locales' => ['en', 'bn'],
+    |     ],
+    |     'admin' => [
+    |         'content_path' => resource_path('user-manual/admin'),
+    |         'route_prefix' => 'user-manual',
+    |         'locales' => ['en', 'bn'],
+    |         'route' => [
+    |             'domain' => env('ADMIN_DOMAIN'),
+    |         ],
+    |     ],
+    | ],
+    |
+    */
+    'manuals' => [],
+
+    /*
+    |--------------------------------------------------------------------------
     | Cache
     |--------------------------------------------------------------------------
     */

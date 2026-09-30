@@ -1,22 +1,15 @@
 @php
     use MuhammadMahediHasan\UserManual\Support\Config;
+    use MuhammadMahediHasan\UserManual\Support\ManualPath;
 
-    $routePrefix = trim(Config::string('user-manual.route_prefix', 'user-manual'), '/');
+    $routePrefix = trim(Config::string(
+        'user-manual.public_prefix',
+        Config::string('user-manual.route_prefix', 'user-manual'),
+    ), '/');
     $locales = Config::stringList('user-manual.locales', ['en']);
 
     $resolveSlug = function (string $url) use ($routePrefix, $locales): string {
-        $path = trim(parse_url($url, PHP_URL_PATH) ?? '', '/');
-        $segments = explode('/', $path);
-
-        if ($segments[0] === $routePrefix) {
-            if (in_array($segments[1] ?? '', $locales, true)) {
-                return $segments[2] ?? '';
-            }
-
-            return $segments[1] ?? '';
-        }
-
-        return basename($path);
+        return ManualPath::slug($url, $routePrefix, $locales);
     };
 
     $isActive = function (array $item) use ($page, $resolveSlug): bool {

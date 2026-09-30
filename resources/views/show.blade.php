@@ -82,7 +82,7 @@
                 <div class="user-manual__header-end">
                     @if (Config::bool('user-manual.pdf.enabled', true))
                         <div class="user-manual__pdf-actions" style="display: flex; gap: 8px; align-items: center;">
-                            <a href="{{ route('user-manual.pdf.page', ['locale' => $locale, 'page' => $page]) }}" target="_blank"
+                            <a href="{{ route(Config::string('user-manual.pdf_page_route_name', 'user-manual.pdf.page'), ['locale' => $locale, 'page' => $page]) }}" target="_blank"
                                 title="Export current page as PDF" class="user-manual__icon-button" style="display: inline-flex; align-items: center; gap: 4px; font-size: 13px; text-decoration: none;">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
@@ -92,7 +92,7 @@
                                 </svg>
                                 <span>{{ __('user-manual::messages.pdf_export_page') }}</span>
                             </a>
-                            <a href="{{ route('user-manual.pdf.full', ['locale' => $locale]) }}" target="_blank"
+                            <a href="{{ route(Config::string('user-manual.pdf_full_route_name', 'user-manual.pdf.full'), ['locale' => $locale]) }}" target="_blank"
                                 title="Export full manual as PDF" class="user-manual__icon-button" style="display: inline-flex; align-items: center; gap: 4px; font-size: 13px; text-decoration: none;">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>

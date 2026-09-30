@@ -192,6 +192,64 @@ return [
 ];
 ```
 
+### Multiple manuals
+
+Leave `manuals` empty for a single manual. That keeps the root `content_path`, `route_prefix`, locales, and route names (`user-manual.show`, `user-manual.pdf.page`, `user-manual.pdf.full`).
+
+Set `manuals` when one application serves more than one manual. Each entry inherits the root config and overrides only the keys it sets. A manual is a content tree plus a route. Locales stay folders inside that tree (`{content_path}/{version}/{locale}/{page}.md`), so each panel can have its own `en` and `bn` pages.
+
+The package does not require a domain. An application that splits panels by path uses a different `route_prefix` for each manual:
+
+```php
+'manuals' => [
+    'staff' => [
+        'content_path' => resource_path('user-manual/staff'),
+        'route_prefix' => 'manual',
+        'locales' => ['en', 'bn'],
+        'middleware' => ['web', 'auth'],
+    ],
+    'partner' => [
+        'content_path' => resource_path('user-manual/partner'),
+        'route_prefix' => 'partner/manual',
+        'locales' => ['en', 'bn'],
+        'middleware' => ['web', 'auth:partner'],
+        'auth_guards' => ['partner'],
+    ],
+],
+```
+
+An application that serves the same path on two hosts passes Laravel route-group attributes through `route`. `domain` is only one of those attributes. `prefix`, `where`, or `middleware` work the same way. If both `middleware` and `route.middleware` are set, the route-group list is registered.
+
+```php
+'manuals' => [
+    'portal' => [
+        'content_path' => resource_path('user-manual/portal'),
+        'route_prefix' => 'user-manual',
+        'locales' => ['en', 'bn'],
+        'route' => [
+            'domain' => env('PORTAL_DOMAIN', 'abc.com'),
+            'middleware' => ['web', 'auth'],
+        ],
+    ],
+    'admin' => [
+        'content_path' => resource_path('user-manual/admin'),
+        'route_prefix' => 'user-manual',
+        'locales' => ['en', 'bn'],
+        'route_name' => 'admin.user-manual.show',
+        'cache_prefix' => 'user-manual.admin',
+        'route' => [
+            'domain' => env('ADMIN_DOMAIN', 'x.abc.com'),
+            'middleware' => ['web', 'auth:admin'],
+        ],
+        'auth_guards' => ['admin'],
+    ],
+],
+```
+
+Named manuals that omit `route_name` use `{name}.user-manual.show`. PDF routes follow the same pattern (`{name}.user-manual.pdf.page` and `{name}.user-manual.pdf.full`). A named manual that omits `cache_prefix` suffixes the root prefix with its name so cached pages and PDFs do not collide. `user-manual:cache` and `user-manual:clear-cache` accept an optional manual name and otherwise run for every manual.
+
+`navigation.md` links use that manual's own public prefix. Set `set_locale_on_visit` on a manual when visiting it should not write the shared locale session key.
+
 ### CommonMark options
 
 Markdown is rendered with League CommonMark (GitHub-flavored). Package defaults escape raw HTML and block unsafe links. Values under `commonmark` are merged on top of those defaults and passed to `GithubFlavoredMarkdownConverter`:

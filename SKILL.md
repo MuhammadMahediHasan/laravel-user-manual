@@ -8,9 +8,12 @@ description: Use this skill when a feature has just been finished and should be 
 ## Where content lives
 
 Pages live under `resources/user-manual/{version}/{locale}/{slug}.md`, e.g.
-`resources/user-manual/1.0/en/invoicing.md`. If the app supports multiple locales,
+`resources/user-manual/1.0/en/invoicing.md`. If `config('user-manual.manuals')`
+is set, each manual has its own `content_path` and locale list — write the page
+under that manual's tree, not the root path. If the app supports multiple locales,
 write the page for the default locale first, then create matching files for
-each other configured locale (check `config('user-manual.locales')`).
+each other configured locale (check `config('user-manual.locales')`, or the
+manual's own `locales` when manuals are configured).
 Missing-locale files are not auto-fallback — an absent file 404s for that
 locale.
 

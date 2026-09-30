@@ -4,23 +4,39 @@ namespace MuhammadMahediHasan\UserManual\Support;
 
 final class Config
 {
+    public static function get(string $key, mixed $default = null): mixed
+    {
+        $manual = app(ManualRegistry::class)->current();
+        $fallback = config($key, $default);
+
+        if ($manual->implicit) {
+            return $fallback;
+        }
+
+        $relative = str_starts_with($key, 'user-manual.')
+            ? substr($key, strlen('user-manual.'))
+            : $key;
+
+        return $manual->resolve($relative, $fallback);
+    }
+
     public static function string(string $key, string $default): string
     {
-        $value = config($key, $default);
+        $value = self::get($key, $default);
 
         return is_string($value) ? $value : $default;
     }
 
     public static function bool(string $key, bool $default): bool
     {
-        $value = config($key, $default);
+        $value = self::get($key, $default);
 
         return is_bool($value) ? $value : $default;
     }
 
     public static function integer(string $key, int $default): int
     {
-        $value = config($key, $default);
+        $value = self::get($key, $default);
 
         if (is_int($value)) {
             return $value;
@@ -39,7 +55,7 @@ final class Config
      */
     public static function stringList(string $key, array $default): array
     {
-        $value = config($key, $default);
+        $value = self::get($key, $default);
 
         if (! is_array($value)) {
             return $default;
@@ -57,7 +73,7 @@ final class Config
      */
     public static function array(string $key, array $default): array
     {
-        $value = config($key, $default);
+        $value = self::get($key, $default);
 
         return is_array($value) ? $value : $default;
     }

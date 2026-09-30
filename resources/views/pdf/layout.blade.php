@@ -1,3 +1,6 @@
+@php
+    use MuhammadMahediHasan\UserManual\Support\Config;
+@endphp
 <!DOCTYPE html>
 <html lang="{{ $locale ?? 'en' }}">
 <head>
@@ -5,16 +8,16 @@
     <title>{{ $title ?? 'User Manual' }}</title>
     <style>
         @page {
-            margin-top: {{ config('user-manual.pdf.margins.top', 16) }}mm;
-            margin-bottom: {{ config('user-manual.pdf.margins.bottom', 16) }}mm;
-            margin-left: {{ config('user-manual.pdf.margins.left', 15) }}mm;
-            margin-right: {{ config('user-manual.pdf.margins.right', 15) }}mm;
+            margin-top: {{ Config::integer('user-manual.pdf.margins.top', 16) }}mm;
+            margin-bottom: {{ Config::integer('user-manual.pdf.margins.bottom', 16) }}mm;
+            margin-left: {{ Config::integer('user-manual.pdf.margins.left', 15) }}mm;
+            margin-right: {{ Config::integer('user-manual.pdf.margins.right', 15) }}mm;
             header: html_manual-header;
             footer: html_manual-footer;
         }
 
         body {
-            font-family: {{ config('user-manual.pdf.default_font', 'sans-serif') }};
+            font-family: {{ Config::string('user-manual.pdf.default_font', 'sans-serif') }};
             color: #1e293b;
             line-height: 1.6;
             font-size: 10.5pt;
@@ -30,7 +33,7 @@
 
         h1 {
             font-size: 18pt;
-            border-bottom: 2px solid {{ config('user-manual.ui.primary_color', '#FF2D20') }};
+            border-bottom: 2px solid {{ Config::string('user-manual.ui.primary_color', '#FF2D20') }};
             padding-bottom: 6px;
         }
 
@@ -50,7 +53,7 @@
             color: #0f172a;
             padding: 2px 4px;
             border-radius: 4px;
-            font-family: {{ config('user-manual.pdf.default_font', 'sans-serif') }};
+            font-family: {{ Config::string('user-manual.pdf.default_font', 'sans-serif') }};
             font-size: 9.5pt;
         }
 
@@ -59,7 +62,7 @@
             color: #f8fafc;
             padding: 12px;
             border-radius: 6px;
-            font-family: {{ config('user-manual.pdf.default_font', 'sans-serif') }};
+            font-family: {{ Config::string('user-manual.pdf.default_font', 'sans-serif') }};
             font-size: 9pt;
             line-height: 1.4;
             margin-bottom: 1.2em;
@@ -72,7 +75,7 @@
         }
 
         blockquote {
-            border-left: 4px solid {{ config('user-manual.ui.primary_color', '#FF2D20') }};
+            border-left: 4px solid {{ Config::string('user-manual.ui.primary_color', '#FF2D20') }};
             margin: 1em 0;
             padding: 8px 16px;
             background-color: #f8fafc;
@@ -126,7 +129,7 @@
 
         .cover-subtitle {
             font-size: 15pt;
-            color: {{ config('user-manual.ui.primary_color', '#FF2D20') }};
+            color: {{ Config::string('user-manual.ui.primary_color', '#FF2D20') }};
             margin-bottom: 40px;
         }
 
@@ -138,15 +141,15 @@
 
         .document-chapter-title {
             font-size: 20pt;
-            color: {{ config('user-manual.ui.primary_color', '#FF2D20') }};
+            color: {{ Config::string('user-manual.ui.primary_color', '#FF2D20') }};
             margin-top: 20px;
             margin-bottom: 16px;
-            border-bottom: 2px solid {{ config('user-manual.ui.primary_color', '#FF2D20') }};
+            border-bottom: 2px solid {{ Config::string('user-manual.ui.primary_color', '#FF2D20') }};
             padding-bottom: 8px;
         }
 
         div.mpdf_toc, div.mpdf_toc_level_0, div.mpdf_toc_level_1, div.mpdf_toc_level_2, a.mpdf_toc_a, span.mpdf_toc_t, span.mpdf_toc_p {
-            font-family: {{ config('user-manual.pdf.default_font', 'sans-serif') }};
+            font-family: {{ Config::string('user-manual.pdf.default_font', 'sans-serif') }};
         }
 
         div.mpdf_toc_level_0 {
@@ -170,15 +173,15 @@
     </style>
 </head>
 <body>
-    @if(config('user-manual.pdf.header.show', true))
+    @if(Config::bool('user-manual.pdf.header.show', true))
         <htmlpageheader name="manual-header">
-            @include(config('user-manual.pdf.header.view', 'user-manual::pdf.header'))
+            @include(Config::string('user-manual.pdf.header.view', 'user-manual::pdf.header'))
         </htmlpageheader>
     @endif
 
-    @if(config('user-manual.pdf.footer.show', true))
+    @if(Config::bool('user-manual.pdf.footer.show', true))
         <htmlpagefooter name="manual-footer">
-            @include(config('user-manual.pdf.footer.view', 'user-manual::pdf.footer'))
+            @include(Config::string('user-manual.pdf.footer.view', 'user-manual::pdf.footer'))
         </htmlpagefooter>
     @endif
 
