@@ -109,7 +109,7 @@ Get up and running with your first documentation page in a few simple steps:
 
 ### System Requirements
 - **PHP**: `^8.2` (Laravel 13 requires PHP `^8.3`)
-- **Laravel Framework**: `^11.0`, `^12.0`, or `^13.0`
+- **Laravel Framework**: `^10.0`, `^11.0`, `^12.0`, or `^13.0`
 - **Extensions**: `ext-intl`
 
 ### Install Package

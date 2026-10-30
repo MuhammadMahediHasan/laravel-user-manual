@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Laravel 10 support (`illuminate/*` ^10.0, Orchestra Testbench 8, Pest 2)
 - Optional `manuals` map so one application can serve more than one manual, each with its own content path, locales, and route. Route-group attributes such as `domain` are passed through and are not required
 - `user-manual:cache` and `user-manual:clear-cache` accept an optional manual name
 - Full-manual PDF warming via `user-manual:cache` using synthetic access profiles (`pdf.warm_full`, `pdf.warm_profiles`)
