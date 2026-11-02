@@ -37,6 +37,15 @@ it('redirects a prefix manual root to its default locale page', function () {
         ->assertRedirect('/manual/en/introduction');
 });
 
+it('redirects with an absolute path so multi-segment prefixes are not doubled', function () {
+    // assertRedirect() normalises relative targets, so check the raw header:
+    // a relative "manual/en/introduction" would resolve against the request
+    // path in the browser (e.g. "/alp/web/alp/web/user-manual/...").
+    $response = $this->actingAs($this->makeAuthenticatable())->get('/manual');
+
+    expect($response->headers->get('Location'))->toStartWith('/');
+});
+
 it('uses each manual permission map', function () {
     $this->actingAs($this->makeAuthenticatable())
         ->get('/manual/en/material')

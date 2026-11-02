@@ -84,6 +84,13 @@ class UserManualServiceProvider extends ServiceProvider
 
     protected function ensureDemoDocsExist(): void
     {
+        // Demo stubs are only for a fresh single-manual install. With named
+        // manuals the root content_path may be one of them (or unused), and
+        // seeding it would recreate pages the app deliberately removed.
+        if (Config::array('user-manual.manuals', []) !== []) {
+            return;
+        }
+
         $contentPath = rtrim(Config::string('user-manual.content_path', resource_path('user-manual')), '/');
         $version = Config::string('user-manual.version', '1.0');
         $defaultLocale = Config::string('user-manual.default_locale', 'en');
@@ -92,6 +99,11 @@ class UserManualServiceProvider extends ServiceProvider
         $stubsDir = __DIR__.'/../stubs/docs/1.0/en';
 
         if (! File::isDirectory($stubsDir)) {
+            return;
+        }
+
+        // Only seed an empty locale directory; never add pages to real content.
+        if (File::isDirectory($targetDir) && File::glob("{$targetDir}/*.md") !== []) {
             return;
         }
 

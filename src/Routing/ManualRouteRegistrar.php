@@ -62,7 +62,12 @@ final class ManualRouteRegistrar
         $group['middleware'] = $middleware;
 
         Route::group($group, function () use ($manual, $prefix, $defaultLocale, $defaultPage, $locales) {
-            Route::redirect($prefix, "{$prefix}/{$defaultLocale}/{$defaultPage}");
+            // Leading slash keeps the Location header absolute; without it Laravel
+            // emits a relative redirect and a multi-segment prefix such as
+            // "alp/web/user-manual" resolves to "/alp/web/alp/web/user-manual/...".
+            $target = '/'.trim($prefix, '/');
+
+            Route::redirect($prefix, "{$target}/{$defaultLocale}/{$defaultPage}");
 
             Route::get("{$prefix}/{locale}/export/pdf", [PdfController::class, 'exportFullPdf'])
                 ->where('locale', $locales)
@@ -79,7 +84,7 @@ final class ManualRouteRegistrar
                 ->defaults('page', $defaultPage)
                 ->name($manual->showRouteName());
 
-            Route::redirect("{$prefix}/{page}", "{$prefix}/{$defaultLocale}/{page}")
+            Route::redirect("{$prefix}/{page}", "{$target}/{$defaultLocale}/{page}")
                 ->where('page', '[a-z0-9\-]+');
         });
     }
