@@ -86,6 +86,9 @@ is user-facing, ask rather than assuming a page is needed.
   so changes appear immediately.
 - If you changed `commonmark` config specifically, clear the manual cache:
   `php artisan user-manual:clear-cache`.
+- Full manual PDFs are pre-generated per role. Stored PDFs notice the content
+  change and regenerate in the background on the next download, but run
+  `php artisan user-manual:pdf` (as the deploy does) to refresh them right away.
 - Verify the page renders and appears in the sidebar before considering the
   documentation task done — a missing `navigation.md` entry is the most common
   mistake.

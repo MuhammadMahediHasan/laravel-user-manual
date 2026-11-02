@@ -1,7 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\File;
-use MuhammadMahediHasan\UserManual\Services\PdfGeneratorService;
+use MuhammadMahediHasan\UserManual\Pdf\PdfRenderer;
 
 it('rewrites root-relative image sources to absolute public paths', function () {
     $relative = 'user-manual-test/pixel.png';
@@ -10,7 +10,7 @@ it('rewrites root-relative image sources to absolute public paths', function () 
     File::put($file, 'x');
 
     try {
-        $html = app(PdfGeneratorService::class)
+        $html = app(PdfRenderer::class)
             ->resolveImageSources('<p><img src="/'.$relative.'" alt="a" /></p>');
 
         expect($html)->toContain('src="'.$file.'"')
@@ -28,7 +28,7 @@ it('resolves root-relative sources that carry a query string', function () {
     File::put($file, 'x');
 
     try {
-        $html = app(PdfGeneratorService::class)
+        $html = app(PdfRenderer::class)
             ->resolveImageSources('<img src="/'.$relative.'?v=2">');
 
         expect($html)->toContain('src="'.$file.'"');
@@ -43,5 +43,5 @@ it('leaves remote, data and unresolved image sources unchanged', function () {
         .'<img src="data:image/png;base64,AAAA">'
         .'<img src="/does/not/exist.png">';
 
-    expect(app(PdfGeneratorService::class)->resolveImageSources($html))->toBe($html);
+    expect(app(PdfRenderer::class)->resolveImageSources($html))->toBe($html);
 });

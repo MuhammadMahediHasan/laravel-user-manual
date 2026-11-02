@@ -8,6 +8,7 @@ use Illuminate\Routing\Controller;
 use MuhammadMahediHasan\UserManual\Services\PdfGeneratorService;
 use MuhammadMahediHasan\UserManual\Services\PermissionResolver;
 use MuhammadMahediHasan\UserManual\Support\Config;
+use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
 class PdfController extends Controller
 {
@@ -17,34 +18,37 @@ class PdfController extends Controller
     ) {}
 
     /**
-     * Export a single documentation page as a PDF.
+     * Export a single documentation page as a PDF, rendered on request.
      */
     public function exportPagePdf(Request $request, string $locale, string $page): Response
     {
-        abort_unless(Config::bool('user-manual.pdf.enabled', true), 404);
-
-        $locales = Config::stringList('user-manual.locales', ['en']);
-        if (! in_array($locale, $locales, true)) {
-            abort(404);
-        }
+        $this->abortUnlessEnabled($locale, 'page');
 
         abort_unless($this->permissionResolver->canAccessPage($page), 403);
 
-        return $this->pdfGeneratorService->generatePagePdf($locale, $page);
+        return $this->pdfGeneratorService->pagePdf($locale, $page);
     }
 
     /**
-     * Export the full documentation manual (all accessible sections) as a single PDF.
+     * Serve the pre-generated full manual of the viewer's role.
      */
-    public function exportFullPdf(Request $request, string $locale): Response
+    public function exportFullPdf(Request $request, string $locale): SymfonyResponse
     {
-        abort_unless(Config::bool('user-manual.pdf.enabled', true), 404);
+        $this->abortUnlessEnabled($locale, 'full');
 
-        $locales = Config::stringList('user-manual.locales', ['en']);
-        if (! in_array($locale, $locales, true)) {
-            abort(404);
-        }
+        $user = $this->permissionResolver->user();
+        abort_if($user === null, 403);
 
-        return $this->pdfGeneratorService->generateFullPdf($locale);
+        return $this->pdfGeneratorService->fullPdfResponse($request, $locale, $user);
+    }
+
+    private function abortUnlessEnabled(string $locale, string $type): void
+    {
+        abort_unless(
+            Config::bool('user-manual.pdf.enabled', true) && Config::bool("user-manual.pdf.{$type}.enabled", true),
+            404,
+        );
+
+        abort_unless(in_array($locale, Config::stringList('user-manual.locales', ['en']), true), 404);
     }
 }

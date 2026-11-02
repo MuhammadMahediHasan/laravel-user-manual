@@ -3,6 +3,10 @@
 namespace MuhammadMahediHasan\UserManual\Services;
 
 use Illuminate\Contracts\Auth\Authenticatable;
+use InvalidArgumentException;
+use MuhammadMahediHasan\UserManual\Access\DefaultAccessChecker;
+use MuhammadMahediHasan\UserManual\Contracts\AccessChecker;
+use MuhammadMahediHasan\UserManual\Support\AccessProfileUser;
 use MuhammadMahediHasan\UserManual\Support\Config;
 use MuhammadMahediHasan\UserManual\Support\ManualPath;
 use MuhammadMahediHasan\UserManual\Support\ManualRegistry;
@@ -17,7 +21,7 @@ class PermissionResolver
 
     public function canAccessPage(string $slug): bool
     {
-        $user = $this->authenticatedUser();
+        $user = $this->user();
 
         if ($user === null) {
             return false;
@@ -143,16 +147,32 @@ class PermissionResolver
      */
     private function userHasAnyRole(Authenticatable $user, array $roles): bool
     {
-        if (! method_exists($user, 'hasRole')) {
-            return false;
+        if ($user instanceof AccessProfileUser) {
+            return $user->hasAnyRole($roles);
         }
 
-        return $user->hasRole($roles);
+        return $this->accessChecker()->hasAnyRole($user, $roles);
     }
 
     private function userCan(Authenticatable $user, string $permission): bool
     {
-        return method_exists($user, 'can') && $user->can($permission);
+        if ($user instanceof AccessProfileUser) {
+            return $user->hasPermission($permission);
+        }
+
+        return $this->accessChecker()->hasPermission($user, $permission);
+    }
+
+    private function accessChecker(): AccessChecker
+    {
+        $class = Config::string('user-manual.access_checker', DefaultAccessChecker::class);
+        $checker = app($class);
+
+        if (! $checker instanceof AccessChecker) {
+            throw new InvalidArgumentException("User manual access checker [{$class}] must implement [".AccessChecker::class.'].');
+        }
+
+        return $checker;
     }
 
     private function userManual(): UserManualManager
@@ -160,7 +180,11 @@ class PermissionResolver
         return $this->userManual ?? app(UserManualManager::class);
     }
 
-    private function authenticatedUser(): ?Authenticatable
+    /**
+     * The viewer: the resolver's fixed user, the request user, or the first
+     * signed-in user of the configured auth guards.
+     */
+    public function user(): ?Authenticatable
     {
         if ($this->user !== null) {
             return $this->user;

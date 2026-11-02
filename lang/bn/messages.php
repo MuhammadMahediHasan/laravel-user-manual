@@ -16,5 +16,8 @@ return [
     'pdf_cover_subtitle' => 'অফিসিয়াল ব্যবহারকারী নির্দেশিকা',
     'version_label' => 'সংস্করণ',
     'generated_label' => 'তৈরি করা হয়েছে:',
+    'pdf_generating_title' => 'আপনার পিডিএফ তৈরি হচ্ছে',
+    'pdf_generating_message' => 'সম্পূর্ণ নির্দেশিকার পিডিএফ তৈরি করা হচ্ছে। অনুগ্রহ করে কয়েক মিনিট পরে আবার চেষ্টা করুন।',
+    'pdf_try_again' => 'আবার চেষ্টা করুন',
     'table_of_contents' => 'সূচিপত্র',
 ];

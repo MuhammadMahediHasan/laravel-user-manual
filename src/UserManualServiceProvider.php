@@ -6,6 +6,12 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\ServiceProvider;
 use MuhammadMahediHasan\UserManual\Console\CacheCommand;
 use MuhammadMahediHasan\UserManual\Console\ClearCacheCommand;
+use MuhammadMahediHasan\UserManual\Console\ClearPdfCommand;
+use MuhammadMahediHasan\UserManual\Console\GeneratePdfCommand;
+use MuhammadMahediHasan\UserManual\Contracts\RoleResolver;
+use MuhammadMahediHasan\UserManual\Pdf\FullPdfGenerator;
+use MuhammadMahediHasan\UserManual\Pdf\FullPdfStore;
+use MuhammadMahediHasan\UserManual\Pdf\PdfRenderer;
 use MuhammadMahediHasan\UserManual\Services\MarkdownRenderer;
 use MuhammadMahediHasan\UserManual\Services\NavigationParser;
 use MuhammadMahediHasan\UserManual\Services\PdfGeneratorService;
@@ -32,7 +38,13 @@ class UserManualServiceProvider extends ServiceProvider
 
         $this->app->singleton(MarkdownRenderer::class);
         $this->app->singleton(NavigationParser::class);
+        $this->app->singleton(PdfRenderer::class);
+        $this->app->singleton(FullPdfStore::class);
         $this->app->singleton(PdfGeneratorService::class);
+        $this->app->singleton(FullPdfGenerator::class);
+
+        // The current manual's resolver (roles.resolver or a runtime override).
+        $this->app->bind(RoleResolver::class, fn ($app) => $app->make(UserManualManager::class)->roleResolver());
     }
 
     public function boot(): void
@@ -74,6 +86,8 @@ class UserManualServiceProvider extends ServiceProvider
             $this->commands([
                 ClearCacheCommand::class,
                 CacheCommand::class,
+                GeneratePdfCommand::class,
+                ClearPdfCommand::class,
             ]);
         }
 

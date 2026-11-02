@@ -1,10 +1,10 @@
 <?php
 
-use MuhammadMahediHasan\UserManual\Services\PdfGeneratorService;
+use MuhammadMahediHasan\UserManual\Pdf\PdfRenderer;
 
-function chunker(): PdfGeneratorService
+function chunker(): PdfRenderer
 {
-    return app(PdfGeneratorService::class);
+    return app(PdfRenderer::class);
 }
 
 it('returns the html unchanged when it fits in a single chunk', function () {

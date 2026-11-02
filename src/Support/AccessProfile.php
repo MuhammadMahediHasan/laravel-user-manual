@@ -6,10 +6,11 @@ use Illuminate\Auth\GenericUser;
 use Illuminate\Contracts\Auth\Authenticatable;
 
 /**
- * Builds a synthetic Authenticatable for console full-PDF warming so
- * PermissionResolver can filter navigation without a real login session.
+ * Builds a synthetic Authenticatable from a role's access profile so the
+ * full-manual PDF of that role can be generated without a real login session
+ * (see Contracts\RoleResolver::roles()).
  *
- * Profile shapes (each entry in pdf.warm_profiles):
+ * Profile shapes:
  * - []                  → authenticated user with no extra permissions/roles
  * - ['perm_a', 'perm_b'] → user that can() those permissions
  * - ['roles' => [...]]  → user that hasRole() those roles (may also list permissions)
@@ -20,7 +21,7 @@ final class AccessProfile
     /**
      * @param  array<int|string, mixed>|string  $profile
      */
-    public static function makeUser(array|string $profile): Authenticatable
+    public static function makeUser(array|string $profile): AccessProfileUser
     {
         if (self::isUnrestricted($profile)) {
             return self::user(permissions: ['*'], roles: ['*'], unrestricted: true);
@@ -74,8 +75,8 @@ final class AccessProfile
         array $permissions = [],
         array $roles = [],
         bool $unrestricted = false,
-    ): Authenticatable {
-        return new class($permissions, $roles, $unrestricted) extends GenericUser
+    ): AccessProfileUser {
+        return new class($permissions, $roles, $unrestricted) extends GenericUser implements AccessProfileUser
         {
             /**
              * @param  list<string>  $permissions
@@ -87,6 +88,16 @@ final class AccessProfile
                 public bool $unrestricted,
             ) {
                 parent::__construct(['id' => 0, 'name' => 'user-manual-warm-profile']);
+            }
+
+            public function hasPermission(string $permission): bool
+            {
+                return $this->unrestricted || in_array($permission, $this->permissions, true);
+            }
+
+            public function hasAnyRole(array $roles): bool
+            {
+                return $this->unrestricted || array_intersect($roles, $this->roles) !== [];
             }
 
             public function can($ability, $arguments = []): bool

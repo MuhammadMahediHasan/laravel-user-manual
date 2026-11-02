@@ -16,5 +16,8 @@ return [
     'pdf_cover_subtitle' => 'Official User Documentation',
     'version_label' => 'Version',
     'generated_label' => 'Generated:',
+    'pdf_generating_title' => 'Preparing your PDF',
+    'pdf_generating_message' => 'The full manual PDF is being generated. Please try again in a few minutes.',
+    'pdf_try_again' => 'Try again',
     'table_of_contents' => 'Table of Contents',
 ];

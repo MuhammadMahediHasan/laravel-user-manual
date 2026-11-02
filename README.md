@@ -22,6 +22,7 @@ A markdown-based in-app user manual and help center for Laravel applications wit
 - [AI Authoring](#ai-authoring)
 - [Why Laravel User Manual?](#why-laravel-user-manual)
 - [Commands](#commands)
+- [Upgrading to 2.0](#upgrading-to-20)
 - [Development](#development)
 - [Contributing](#contributing)
 - [Security](#security)
@@ -60,14 +61,16 @@ Laravel User Manual solves this by turning plain Markdown files into a secure, r
 - **Permission Mapping**: Control access to individual pages or sub-sections via Laravel permissions or roles.
 - **Super Admin Bypass**: Assign roles that automatically bypass documentation restrictions.
 - **Custom Access Resolvers**: Extend authorization logic using a closure-based facade callback.
+- **Any Role System**: Works with a `role` column, an enum, your own roles table, spatie/laravel-permission, Bouncer, or no roles at all. No role package required.
 - **Safe CommonMark Defaults**: Protect your app against stored XSS by automatically escaping raw HTML and blocking unsafe `javascript:` links by default.
 
 ### Performance & Caching
 - **Automatic Cache Invalidation**: Cache rendered Markdown and navigation trees using file modification timestamps (`filemtime`), invalidating instantly when `.md` files are edited.
-- **Zero Database Load**: Deliver cached documentation pages and PDF files with sub-5ms response times.
+- **Zero Database Load**: Deliver cached documentation pages with sub-5ms response times; full PDFs are streamed from storage, never rendered on request.
 
 ### PDF Export
-- **Single Page & Full Manual**: Generate downloadable PDF documents for individual pages or compile the entire manual into a single PDF.
+- **Single Page & Full Manual**: Download one page (rendered instantly) or the whole manual (pre-generated per role, streamed from storage).
+- **Role-Aware Full Manual**: One full PDF per role, regenerated in the background when a role changes. Plug in any role system.
 - **Branded Layouts**: Customize cover pages, tables of contents, headers, and footers using Blade templates.
 - **Custom Typography**: Support custom TrueType fonts for non-Latin character sets via mPDF integration.
 
@@ -102,6 +105,12 @@ Get up and running with your first documentation page in a few simple steps:
 
 5. **View in browser**:
    Navigate to `/user-manual` in your browser.
+
+6. **(Optional) Pre-generate the full manual PDF**:
+   ```bash
+   php artisan user-manual:pdf
+   ```
+   Single page PDFs work right away. The "Full PDF" button serves files made by this command (see [Full Manual PDFs per Role](#full-manual-pdfs-per-role)).
 
 ---
 
@@ -187,8 +196,33 @@ return [
     // Merged over safe defaults (html_input: escape, allow_unsafe_links: false).
     // Override only if you trust all markdown authors.
     'commonmark' => [],
+
+    // Access control (see Permissions)
+    'access_checker' => \MuhammadMahediHasan\UserManual\Access\DefaultAccessChecker::class,
     'super_admin_roles' => [],
     'permission-mapper' => [],
+
+    // Roles: one full manual PDF is pre-generated per role (see PDF Export)
+    'roles' => [
+        'resolver' => \MuhammadMahediHasan\UserManual\Roles\DefaultRoleResolver::class,
+        'list' => [],
+        'model' => null,
+        'name' => 'name',
+        'permissions' => 'permissions',
+        'permission_name' => 'name',
+        'scope' => null,
+        'user_roles' => 'roles',
+    ],
+
+    'pdf' => [
+        'enabled' => true,
+        'page' => ['enabled' => true],
+        'full' => ['enabled' => true, 'pending_view' => 'user-manual::pdf.pending', 'retry_after' => 60],
+        'disk' => 'local',
+        'directory' => 'user-manual/pdfs',
+        'queue' => ['connection' => null, 'queue' => null, 'timeout' => 600, 'tries' => 1, 'unique_for' => null],
+        // paper format, margins, fonts, cover/header/footer views…
+    ],
 ];
 ```
 
@@ -283,8 +317,8 @@ The package publishes pre-scoped assets (`user-manual.css` and `user-manual.js`)
 Laravel User Manual provides single-page and full manual PDF exports using mPDF.
 
 ### Export Routes
-- **Single Page PDF**: `/user-manual/{locale}/{page}/pdf` (`user-manual.pdf.page`)
-- **Full Manual PDF**: `/user-manual/{locale}/export/pdf` (`user-manual.pdf.full`)
+- **Single Page PDF**: `/user-manual/{locale}/{page}/pdf` (`user-manual.pdf.page`): rendered on request, nothing stored.
+- **Full Manual PDF**: `/user-manual/{locale}/export/pdf` (`user-manual.pdf.full`): the pre-generated PDF of the viewer's role.
 
 ### PDF Features
 - **Structured Indexing**: Automatically compiles all accessible documentation pages into a single PDF document with a table of contents.
@@ -317,36 +351,382 @@ Publish views (`php artisan vendor:publish --tag=user-manual-views`) to customiz
 - `header.blade.php`: Document running headers.
 - `footer.blade.php`: Document running footers and page numbers.
 
-### PDF Caching
-PDF exports are cached using keys derived from source file modification timestamps (`filemtime`). Updating any Markdown content file or `navigation.md` automatically invalidates stale PDF caches.
+### Full Manual PDFs per Role
 
-**Full manuals are permission-scoped.** Each distinct accessible page set gets its own cache entry (keyed by an access signature), so a restricted viewer never receives a broader user's PDF.
+Rendering a whole manual takes long, so the full PDF is **never rendered during a web request**. It is generated ahead of time, once per role, and stored on a filesystem disk. A download only looks up the viewer's role and streams that file.
 
-**Payloads are stored on disk**, not in the Laravel cache value column. The cache store only keeps a small `'disk'` marker for TTL and invalidation; the base64 PDF lives under `pdf.cache_path` (default `storage/app/user-manual/pdfs`).
+```
+user-manual:pdf / queued job  ──►  disk: user-manual/pdfs/{manual}/{version}/{locale}/
+                                       manifest.json            role key → file
+                                       {signature}-{hash}.pdf   one per page set
+download ──► role of user ──► manifest ──► stream file
+```
+
+- Roles that can read the same pages share one file.
+- When content or a role changes, a new file is written first; the role is switched to it, then the old file is deleted if no other role uses it. Users never hit a missing file.
+- If a role has no PDF yet, the first download queues a job (only once: the job is unique per manual, locale and role) and answers **202** with a "your PDF is being prepared" page, or JSON `{"status": "generating"}` for `Accept: application/json`.
+- If the markdown changed since the PDF was generated, the old PDF is still served while a fresh one is queued. Only `.md` files are watched: after changing **only images**, run `php artisan user-manual:pdf --force`.
+
+#### 1. Tell the package about your roles
+
+The package needs no role package. Pick the resolver that matches how your app stores roles, in the `roles` block of `config/user-manual.php`:
+
+| Your app | Resolver | Config |
+| --- | --- | --- |
+| No roles | `Roles\DefaultRoleResolver` (default) | nothing: everyone gets one `default` PDF |
+| Roles in code: a `users.role` column or an enum | `Roles\ConfigRoleResolver` | `list` (role → profile), `user_roles` |
+| Roles in a database table (your own table, spatie/laravel-permission, Bouncer, …) | `Roles\EloquentRoleResolver` | `model`, `name`, `permissions`, `permission_name`, `scope`, `user_roles` |
+| Anything else | your own `Contracts\RoleResolver` class, or closures | |
+
+An access profile is what a role may see, in the same terms as `permission-mapper`:
+
+| Profile | Meaning |
+| --- | --- |
+| `[]` | signed-in user without permissions |
+| `['perm_a', 'perm_b']` | has these permissions |
+| `['perm_a', 'roles' => ['Editor']]` | permissions plus role names |
+| `'all'` | every page |
+
+**Roles in code**
 
 ```php
-'pdf' => [
-    // On-disk directory for PDF cache payloads
-    'cache_path' => storage_path('app/user-manual/pdfs'),
-
-    // Warm full-manual PDFs during `php artisan user-manual:cache`
-    'warm_full' => true,
-
-    // One full PDF per distinct accessible page set. Profile shapes:
-    // - []                   → authenticated user, no extra permissions
-    // - ['perm_a', 'perm_b'] → user with those permissions
-    // - ['roles' => [...]]   → user with those roles (may also list perms)
-    // - ['*'] or 'all'       → unrestricted access to every page
-    'warm_profiles' => [
-        [],
-        // ['material_access'],
+'roles' => [
+    'resolver' => \MuhammadMahediHasan\UserManual\Roles\ConfigRoleResolver::class,
+    'user_roles' => 'role',          // users.role: "admin", "editor", … (string or enum)
+    'list' => [
+        'admin' => 'all',
+        'editor' => ['post_edit', 'post_publish'],
+        'member' => [],
     ],
 ],
 ```
 
-With the default profile (`[]`), `user-manual:cache` warms the full manual that a normal authenticated user would download. Add more profiles when you have restricted pages so those variants are warm too. Set `warm_full` to `false` to skip full-manual warming (page PDFs are still warmed).
+**Roles in a table**
 
-> **Note:** Large full-manual PDFs with images are memory-heavy. On a low PHP `memory_limit`, generating or downloading a big full PDF may fail with a memory exhaustion error. Raise the limit in your host `php.ini`, FPM pool, or queue worker if that happens.
+```php
+'roles' => [
+    'resolver' => \MuhammadMahediHasan\UserManual\Roles\EloquentRoleResolver::class,
+    'model' => App\Models\Role::class,
+    'name' => 'name',                 // role name attribute
+    'permissions' => 'permissions',   // relation of permission models, an array/JSON column, or null
+    'permission_name' => 'name',      // name attribute of permission models
+    'scope' => null,                  // invokable class (Builder $query, ManualDefinition $manual), e.g. to filter a guard or tenant
+    'user_roles' => 'roles',          // where a user's role(s) are: 'roles' (many), 'role' (belongsTo), 'role_id' (column)
+],
+```
+
+With spatie/laravel-permission the defaults already fit: set `model` to your role model (and add a `scope` class with `where('guard_name', 'web')` if you use several guards). A users table with `role_id` and a JSON `abilities` column on roles works with `'permissions' => 'abilities', 'user_roles' => 'role'`.
+
+Role keys are the model keys. For needs the config can't express, extend `EloquentRoleResolver` and override `query()`, `permissionsFor()` or `roleFor()`.
+
+**Your own resolver**
+
+```php
+interface RoleResolver
+{
+    // role key => access profile, for every role
+    public function roles(ManualDefinition $manual): iterable;
+
+    // the user's role key (null = "default")
+    public function roleFor(Authenticatable $user, ManualDefinition $manual): int|string|null;
+}
+```
+
+Set it as `roles.resolver`, or register closures in a service provider:
+
+```php
+use MuhammadMahediHasan\UserManual\Facades\UserManual;
+
+UserManual::resolveRolesUsing(
+    roles: fn (ManualDefinition $manual) => ['admin' => 'all', 'staff' => ['reports_view']],
+    roleFor: fn ($user, ManualDefinition $manual) => $user->is_admin ? 'admin' : 'staff',
+);
+```
+
+`roles.*` (like every key) can be overridden per entry in `manuals`.
+
+#### 2. Generate the PDFs
+
+```bash
+php artisan user-manual:pdf                      # every manual, locale and role (add to your deploy)
+php artisan user-manual:pdf staff --locale=en    # one manual / locale
+php artisan user-manual:pdf --role=3 --role=7    # some roles
+php artisan user-manual:pdf --queue              # dispatch jobs instead of rendering here
+php artisan user-manual:pdf --force              # render again even if up to date
+php artisan user-manual:pdf --unlock --queue     # free locks left by killed jobs, then queue again
+php artisan user-manual:pdf-clear                # delete all stored full PDFs
+```
+
+Without `--queue` the command renders in its own process (good for deploys) and removes files and manifest entries of roles that no longer exist.
+
+#### 3. Keep them up to date when roles change
+
+Call these wherever your app creates, updates or deletes roles (after the transaction commits):
+
+```php
+UserManual::regenerateRole($role->id);  // queue new PDFs; the old ones are served until they are ready
+UserManual::forgetRole($role->id);      // role deleted: remove its PDFs
+UserManual::releaseLocks($role->id);    // free "already queued" locks left by a killed job
+```
+
+Both accept an optional manual name as second argument.
+
+#### Configuration
+
+```php
+'pdf' => [
+    'page' => ['enabled' => true],
+    'full' => [
+        'enabled' => true,
+        'pending_view' => 'user-manual::pdf.pending', // shown with HTTP 202
+        'retry_after' => 60,                          // Retry-After header (seconds)
+    ],
+    'disk' => env('USER_MANUAL_PDF_DISK', 'local'),   // any filesystem disk, e.g. s3
+    'directory' => 'user-manual/pdfs',
+    'queue' => [
+        'connection' => env('USER_MANUAL_PDF_QUEUE_CONNECTION'), // null = default
+        'queue' => env('USER_MANUAL_PDF_QUEUE'),
+        'timeout' => 600,
+        'tries' => 1,
+        'unique_for' => null, // how long a waiting job blocks duplicates; null = timeout + 60
+        'job' => \MuhammadMahediHasan\UserManual\Jobs\GenerateFullManualPdf::class, // or a subclass
+    ],
+],
+```
+
+> **Queue:** use a real queue (`database`, `redis`, …) with a worker in production, and give the worker the job's timeout (`php artisan queue:work --timeout=600`; `queue:listen` defaults to 60 seconds, too short for big manuals). On the `sync` connection, jobs started from a web request (a download, `regenerateRole()` after saving a role) run **after the response is sent**, with the job timeout as time limit, so the request itself stays fast.
+
+> **"Queued" but nothing in the `jobs` table?** Each job is unique per manual, locale and role. While one is waiting or running, dispatching it again does nothing. If a worker or request was killed mid-job, its lock stays until `unique_for` passes (default: timeout + 60 seconds). Release it right away with `php artisan user-manual:pdf --unlock` (`user-manual:pdf-clear` releases locks too). Also check that no worker such as `queue:listen` is already taking jobs off the table.
+
+#### Events
+
+- `Events\FullPdfGenerated` (`manual`, `locale`, `roleKey`, `path`, `reused`)
+- `Events\FullPdfGenerationFailed` (`manual`, `locale`, `roleKey`, `exception`)
+
+> **Note:** Large full-manual PDFs with images are memory-heavy. If generation fails with a memory error, raise `memory_limit` for the CLI / queue worker.
+
+> **Tip: keep screenshots lean.** Every role's PDF embeds its own copy of each image, so image size multiplies. PNG screenshots with an unused transparency channel are especially slow and large in mPDF. Optimizing them typically makes PDFs about 3× smaller and much faster to build, with no visible change:
+> ```bash
+> mogrify -background white -alpha remove -alpha off public/path/to/images/*.png   # drop unused transparency (ImageMagick)
+> pngquant --quality=85-98 --skip-if-larger --strip --ext .png --force public/path/to/images/*.png
+> optipng -quiet -o2 -strip all public/path/to/images/*.png
+> php artisan user-manual:pdf --force
+> ```
+> Only drop transparency from images that don't use it (`identify -format '%[opaque]'` prints `True` for those).
+
+#### Examples
+
+**A full setup with a roles table**
+
+```php
+// config/user-manual.php
+'super_admin_roles' => ['Super Admin'],
+
+'permission-mapper' => [
+    'introduction' => '*',
+    'reports' => ['report_view'],
+    'billing' => ['billing_manage'],
+    'system-settings' => ['roles' => ['Admin']],
+],
+
+'roles' => [
+    'resolver' => \MuhammadMahediHasan\UserManual\Roles\EloquentRoleResolver::class,
+    'model' => App\Models\Role::class,
+    'user_roles' => 'roles',
+],
+
+'pdf' => [
+    'disk' => 's3',
+    'queue' => ['connection' => 'redis', 'queue' => 'pdf'],
+],
+```
+
+```bash
+php artisan user-manual:pdf          # on deploy
+php artisan queue:work redis --queue=pdf --timeout=600
+```
+
+Each role gets a PDF with only the pages it may read. A role with `report_view` gets "Reports" but not "Billing", and Super Admins get everything.
+
+**Filter roles with a scope class** (a guard, a tenant, active roles only):
+
+```php
+namespace App\UserManual;
+
+use Illuminate\Database\Eloquent\Builder;
+use MuhammadMahediHasan\UserManual\Support\ManualDefinition;
+
+class WebRolesOnly
+{
+    public function __invoke(Builder $query, ManualDefinition $manual): void
+    {
+        $query->where('guard_name', 'web');
+    }
+}
+```
+
+```php
+'roles' => [
+    'resolver' => \MuhammadMahediHasan\UserManual\Roles\EloquentRoleResolver::class,
+    'model' => App\Models\Role::class,
+    'scope' => App\UserManual\WebRolesOnly::class,
+],
+```
+
+**Extend `EloquentRoleResolver`** when a role's permissions depend on more than the config can say, e.g. permissions stored per tenant on the pivot, and one manual per tenant:
+
+```php
+namespace App\UserManual;
+
+use App\Models\Role;
+use Illuminate\Database\Eloquent\Builder;
+use MuhammadMahediHasan\UserManual\Roles\EloquentRoleResolver;
+use MuhammadMahediHasan\UserManual\Support\ManualDefinition;
+
+class TenantRoleResolver extends EloquentRoleResolver
+{
+    protected function query(ManualDefinition $manual): Builder
+    {
+        // `tenant` is a custom key on the manual entry in config/user-manual.php
+        $tenant = $manual->resolve('tenant', 'default');
+
+        return Role::query()->with([
+            'permissions' => fn ($query) => $query->wherePivot('tenant', $tenant),
+        ]);
+    }
+}
+```
+
+```php
+'roles' => ['resolver' => App\UserManual\TenantRoleResolver::class, 'model' => App\Models\Role::class],
+
+'manuals' => [
+    'shop' => ['content_path' => resource_path('user-manual/shop'), 'route_prefix' => 'shop/help', 'tenant' => 'shop'],
+    'crm' => ['content_path' => resource_path('user-manual/crm'), 'route_prefix' => 'crm/help', 'tenant' => 'crm'],
+],
+```
+
+**Write your own resolver**, e.g. for roles from an external API or a hard-coded enum:
+
+```php
+namespace App\UserManual;
+
+use App\Enums\Role;
+use Illuminate\Contracts\Auth\Authenticatable;
+use MuhammadMahediHasan\UserManual\Contracts\RoleResolver;
+use MuhammadMahediHasan\UserManual\Support\ManualDefinition;
+
+class EnumRoleResolver implements RoleResolver
+{
+    public function roles(ManualDefinition $manual): iterable
+    {
+        foreach (Role::cases() as $role) {
+            yield $role->value => $role === Role::Owner ? 'all' : $role->permissions();
+        }
+    }
+
+    public function roleFor(Authenticatable $user, ManualDefinition $manual): ?string
+    {
+        return $user->role?->value; // null → "default"
+    }
+}
+```
+
+If you add your own `default` role, list it in `roles()` too. Any key `roleFor()` returns must exist there.
+
+**Regenerate PDFs when roles change**, from an observer:
+
+```php
+namespace App\Observers;
+
+use App\Models\Role;
+use MuhammadMahediHasan\UserManual\Facades\UserManual;
+
+class RoleObserver
+{
+    public bool $afterCommit = true;
+
+    public function saved(Role $role): void
+    {
+        UserManual::regenerateRole($role->getKey());
+    }
+
+    public function deleted(Role $role): void
+    {
+        UserManual::forgetRole($role->getKey());
+    }
+}
+```
+
+Model events don't fire when only a pivot changes (e.g. `$role->permissions()->sync(...)`). In that case call `UserManual::regenerateRole()` right after the sync, or wrap it with `DB::afterCommit(fn () => UserManual::regenerateRole($role->id))` inside a transaction. You can also refresh one manual only: `UserManual::regenerateRole($role->id, 'crm')`.
+
+**React to generation results**:
+
+```php
+use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Log;
+use MuhammadMahediHasan\UserManual\Events\FullPdfGenerated;
+use MuhammadMahediHasan\UserManual\Events\FullPdfGenerationFailed;
+
+Event::listen(fn (FullPdfGenerated $event) => Log::info("Manual PDF ready: {$event->manual}/{$event->locale} for role {$event->roleKey}"));
+
+Event::listen(fn (FullPdfGenerationFailed $event) => Log::error('Manual PDF failed', [
+    'manual' => $event->manual,
+    'role' => $event->roleKey,
+    'error' => $event->exception?->getMessage(),
+]));
+```
+
+**Customize the job** (middleware, backoff, more memory):
+
+```php
+namespace App\Jobs;
+
+use Illuminate\Queue\Middleware\WithoutOverlapping;
+use MuhammadMahediHasan\UserManual\Jobs\GenerateFullManualPdf;
+use MuhammadMahediHasan\UserManual\Pdf\FullPdfGenerator;
+
+class GenerateManualPdf extends GenerateFullManualPdf
+{
+    public function middleware(): array
+    {
+        return [(new WithoutOverlapping('user-manual-pdf'))->releaseAfter(30)];
+    }
+
+    public function handle(FullPdfGenerator $generator): void
+    {
+        ini_set('memory_limit', '1G');
+
+        parent::handle($generator);
+    }
+}
+```
+
+```php
+'pdf' => ['queue' => ['job' => App\Jobs\GenerateManualPdf::class]],
+```
+
+**Custom "being prepared" page**: copy `resources/views/vendor/user-manual/pdf/pending.blade.php` (published with `--tag=user-manual-views`) or point to your own view. It receives `$locale`, `$message` and `$retryAfter`:
+
+```php
+'pdf' => ['full' => ['pending_view' => 'help.pdf-pending', 'retry_after' => 30]],
+```
+
+**Download from JavaScript**: request with `Accept: application/json` to tell a 202 apart from the file:
+
+```js
+async function downloadManual(url) {
+    const response = await fetch(url, { headers: { Accept: 'application/json' } });
+
+    if (response.status === 202) {
+        const { message, retry_after } = await response.json();
+        alert(message); // "The full manual PDF is being generated…"
+        return setTimeout(() => downloadManual(url), retry_after * 1000);
+    }
+
+    window.open(url, '_blank');
+}
+```
 
 ---
 
@@ -371,6 +751,61 @@ Restrict access to specific documentation pages by setting rules in `permission-
 - Pages not specified in `permission-mapper` default to accessible for all authenticated users.
 - Unauthorized pages are automatically removed from navigation menus and PDF exports.
 - Roles specified in `super_admin_roles` bypass all permission checks.
+
+### How permissions and roles are checked
+No role package is required. The default `Access\DefaultAccessChecker`:
+
+- **Permissions**: `$user->can($permission)`, Laravel's Gate. Anything registered with the Gate counts: `Gate::define()`, policies, `Gate::before()`, or a role package hooked into the Gate.
+- **Roles**: `$user->hasRole($roles)` if your user model has that method. Otherwise it uses the role names found at `roles.user_roles` (default `roles`): a relation of role models (their `roles.name` attribute), one model (`role`), or a plain column or enum (`role`).
+
+To check differently, implement `Contracts\AccessChecker` and set it in the config:
+
+```php
+'access_checker' => App\UserManual\MyAccessChecker::class,
+```
+
+```php
+interface AccessChecker
+{
+    public function hasPermission(Authenticatable $user, string $permission): bool;
+    public function hasAnyRole(Authenticatable $user, array $roles): bool;
+}
+```
+
+Examples without extra config:
+
+```php
+// users.role column holding "admin" / "editor"
+'roles' => ['user_roles' => 'role'],
+'permission-mapper' => ['settings' => ['roles' => ['admin']]],
+
+// users.role_id → roles table with a `title` column
+'roles' => ['user_roles' => 'role', 'name' => 'title'],
+```
+
+A custom checker, e.g. permissions from a JSON column on the user and roles from a team membership:
+
+```php
+namespace App\UserManual;
+
+use Illuminate\Contracts\Auth\Authenticatable;
+use MuhammadMahediHasan\UserManual\Contracts\AccessChecker;
+
+class TeamAccessChecker implements AccessChecker
+{
+    public function hasPermission(Authenticatable $user, string $permission): bool
+    {
+        return in_array($permission, $user->permissions ?? [], true);
+    }
+
+    public function hasAnyRole(Authenticatable $user, array $roles): bool
+    {
+        return in_array($user->currentTeam?->pivot?->role, $roles, true);
+    }
+}
+```
+
+The access checker is used only for real users on the web pages. Full PDFs are built from each role's profile in the role resolver, so a custom checker never changes what a role's PDF contains.
 
 ### Custom Access Resolver
 For complex authorization logic, register a callback using the `UserManual` facade:
@@ -416,14 +851,57 @@ To enable, copy `SKILL.md` into your workspace skill directory (e.g., `.claude/s
 ## Commands
 
 ```bash
-# Pre-render navigation, markdown HTML, page PDFs, and configured full-manual PDF variants
+# Pre-render navigation and markdown HTML
 php artisan user-manual:cache
 
-# Clear cached navigation, rendered markdown, PDF markers, and on-disk PDF payloads
+# Clear cached navigation and rendered markdown
 php artisan user-manual:clear-cache
+
+# Pre-generate the full manual PDF of every role (see "Full Manual PDFs per Role")
+php artisan user-manual:pdf {manual?} {--role=*} {--locale=*} {--queue} {--force} {--unlock}
+
+# Delete the stored full manual PDFs (and release their job locks)
+php artisan user-manual:pdf-clear {manual?}
 ```
 
-`user-manual:cache` clears first, then warms. Full-manual warming uses synthetic access profiles (`pdf.warm_profiles`) so the console never caches an empty “no user” manual. After a successful warm, the first matching web full-export is a cache hit.
+`user-manual:cache` clears first, then warms. Each command accepts an optional manual name.
+
+---
+
+## Upgrading to 2.0
+
+Version 2.0 changes how PDFs are made: full manuals are pre-generated per role instead of being rendered or cached on request. Most apps need four steps:
+
+1. **Update the package**
+   ```bash
+   composer require muhammadmahedihasan/laravel-user-manual:^2.0
+   ```
+2. **Update a published `config/user-manual.php`**. Compare it with the package config (`vendor:publish --tag=user-manual-config --force` overwrites yours, so merge by hand):
+   - remove `pdf.warm_full`, `pdf.warm_profiles` and `pdf.cache_path`;
+   - add `access_checker`, the `roles` block, and `pdf.page`, `pdf.full`, `pdf.disk`, `pdf.directory` and `pdf.queue`. Missing keys fall back to the defaults: one `default` PDF for everyone.
+3. **Tell the package about your roles** if pages are permission-restricted. See [Full Manual PDFs per Role](#full-manual-pdfs-per-role). Keep the PDFs current with `UserManual::regenerateRole()` / `forgetRole()` where roles change.
+4. **Generate the PDFs on deploy and run a worker**
+   ```bash
+   php artisan user-manual:pdf
+   php artisan queue:work --timeout=600
+   ```
+
+Also check:
+
+- **Published views**: if you published `show.blade.php`, wrap its two PDF buttons in `@if (Config::bool('user-manual.pdf.page.enabled', true))` / `@if (Config::bool('user-manual.pdf.full.enabled', true))`. The new `pdf/pending.blade.php` view is used from the package unless you publish it.
+- **Cache commands**: `user-manual:cache` and `user-manual:clear-cache` only handle markdown and navigation now. Use `user-manual:pdf` and `user-manual:pdf-clear` for PDFs.
+- **Role checks**: `['roles' => [...]]` rules and `super_admin_roles` no longer need a `hasRole()` method. Users without one are checked through `roles.user_roles`.
+- **Code calling the PDF service**:
+
+  | 1.x | 2.0 |
+  | --- | --- |
+  | `PdfGeneratorService::generatePagePdf($locale, $page)` | `pagePdf($locale, $page)` |
+  | `PdfGeneratorService::generateFullPdf($locale)` | `fullPdfResponse($request, $locale, $user)` |
+  | `PdfGeneratorService::createMpdfInstance()`, `chunkHtml()`, `resolveImageSources()` | same methods on `Pdf\PdfRenderer` |
+  | `warmFullPdf()`, `fullPdfIndexKey()`, `forgetFullPdfCaches()`, `pdfCachePath()`, `forgetPdf()`, `flushPdfCacheFiles()` | removed: use `user-manual:pdf`, `user-manual:pdf-clear`, `UserManual::regenerateRole()` |
+  | `calculateMaxLastModified()` | `contentHash($locale)` |
+
+- **Old files**: the 1.x PDF cache files (`storage/app/user-manual/pdfs/*.b64`) are no longer used and can be deleted.
 
 ---
 

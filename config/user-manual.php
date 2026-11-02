@@ -1,5 +1,9 @@
 <?php
 
+use MuhammadMahediHasan\UserManual\Access\DefaultAccessChecker;
+use MuhammadMahediHasan\UserManual\Jobs\GenerateFullManualPdf;
+use MuhammadMahediHasan\UserManual\Roles\DefaultRoleResolver;
+
 return [
 
     /*
@@ -116,6 +120,61 @@ return [
     | Pages not listed are available to any authenticated user.
     |
     */
+    /*
+    | How roles and permissions are checked (permission-mapper rules and
+    | super_admin_roles). The default works with any setup: permissions via
+    | Laravel's $user->can() (Gate), roles via $user->hasRole() when the user
+    | has it, otherwise the role names found at `roles.user_roles`. Set your
+    | own MuhammadMahediHasan\UserManual\Contracts\AccessChecker class here.
+    */
+    'access_checker' => DefaultAccessChecker::class,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Roles
+    |--------------------------------------------------------------------------
+    |
+    | Which roles exist and which role a user has. Used to pre-generate one
+    | full manual PDF per role. `resolver` is a class implementing
+    | MuhammadMahediHasan\UserManual\Contracts\RoleResolver:
+    |
+    | - DefaultRoleResolver:  no roles, one "default" PDF for everyone
+    | - ConfigRoleResolver:   roles listed in `list` (roles kept in code,
+    |                         e.g. a users.role column or an enum)
+    | - EloquentRoleResolver: roles stored in a table (`model`), with any role
+    |                         package or none
+    | - your own class, or UserManual::resolveRolesUsing() closures
+    |
+    | Examples
+    |   Role table with a permissions relation (e.g. spatie/laravel-permission):
+    |     'resolver' => EloquentRoleResolver::class, 'model' => App\Models\Role::class,
+    |   users.role_id → roles table, roles.abilities JSON column:
+    |     'resolver' => EloquentRoleResolver::class, 'model' => App\Models\Role::class,
+    |     'permissions' => 'abilities', 'user_roles' => 'role',
+    |   users.role string/enum column:
+    |     'resolver' => ConfigRoleResolver::class, 'user_roles' => 'role',
+    |     'list' => ['admin' => 'all', 'editor' => ['post_edit'], 'member' => []],
+    |
+    */
+    'roles' => [
+        'resolver' => DefaultRoleResolver::class,
+
+        // ConfigRoleResolver: role key => access profile
+        // ([] | ['perm_a', ...] | ['perm_a', 'roles' => ['Editor']] | 'all')
+        'list' => [],
+
+        // EloquentRoleResolver
+        'model' => null,
+        'name' => 'name',
+        'permissions' => 'permissions',     // relation or array/JSON column; null = none
+        'permission_name' => 'name',        // name attribute of permission models
+        'scope' => null,                    // invokable class: (Builder $query, ManualDefinition $manual)
+
+        // Where a user's role(s) are (data_get path): a relation, a model,
+        // a column or an enum. Used by the resolvers and the access checker.
+        'user_roles' => 'roles',
+    ],
+
     'super_admin_roles' => [],
     'permission-mapper' => [],
 
@@ -163,32 +222,49 @@ return [
         'temp_dir' => sys_get_temp_dir(),
 
         /*
-        | Full-manual PDF warming (user-manual:cache)
+        | Single page PDF
         |
-        | Full manuals are permission-scoped. The cache command warms one PDF
-        | per configured access profile so the first matching web export is a
-        | cache hit. Each distinct accessible page set is a large cached blob —
-        | more profiles mean longer warm runs and more cache storage.
-        |
-        | Profile shapes:
-        | - []                   → authenticated user, no extra permissions
-        | - ['perm_a', 'perm_b'] → user with those permissions
-        | - ['roles' => [...]]   → user with those roles (may also list perms)
-        | - ['*'] or 'all'       → unrestricted access to every page
-        |
-        | Set warm_full to false to skip full-manual warming entirely.
+        | Rendered on request and streamed. Nothing is stored or queued.
         */
-        'warm_full' => true,
-        'warm_profiles' => [
-            [],
+        'page' => [
+            'enabled' => true,
         ],
 
         /*
-        | Directory for on-disk PDF cache payloads. Full manuals (and large
-        | page PDFs) exceed MySQL mediumtext (~16 MB), so the Laravel cache
-        | only stores a small marker while the base64 payload lives here.
+        | Full manual PDF
+        |
+        | Pre-generated per role, stored on `disk` under `directory`, and only
+        | streamed on request. Generate them with `php artisan user-manual:pdf`
+        | (e.g. on deploy) and call UserManual::regenerateRole($key) when a
+        | role's permissions change. A missing PDF is queued on first request
+        | and the viewer sees `pending_view` (HTTP 202, or JSON for API calls).
         */
-        'cache_path' => storage_path('app/user-manual/pdfs'),
+        'full' => [
+            'enabled' => true,
+            'pending_view' => 'user-manual::pdf.pending',
+            'retry_after' => 60,
+        ],
+
+        'disk' => env('USER_MANUAL_PDF_DISK', 'local'),
+        'directory' => 'user-manual/pdfs',
+
+        /*
+        | Background generation. `job` may be a subclass of
+        | MuhammadMahediHasan\UserManual\Jobs\GenerateFullManualPdf.
+        | `unique_for` is how long (seconds) a queued job blocks duplicates; null
+        | means `timeout` + 60, so a killed job can't block a role for long.
+        | Stuck anyway? `php artisan user-manual:pdf --unlock`.
+        | On a `sync` connection, jobs started from a web request run after the
+        | response is sent; use a real queue with a worker in production.
+        */
+        'queue' => [
+            'connection' => env('USER_MANUAL_PDF_QUEUE_CONNECTION'),
+            'queue' => env('USER_MANUAL_PDF_QUEUE'),
+            'timeout' => 600,
+            'tries' => 1,
+            'unique_for' => null,
+            'job' => GenerateFullManualPdf::class,
+        ],
 
         /*
         | Custom Fonts Settings

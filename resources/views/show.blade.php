@@ -82,6 +82,7 @@
                 <div class="user-manual__header-end">
                     @if (Config::bool('user-manual.pdf.enabled', true))
                         <div class="user-manual__pdf-actions" style="display: flex; gap: 8px; align-items: center;">
+                            @if (Config::bool('user-manual.pdf.page.enabled', true))
                             <a href="{{ route(Config::string('user-manual.pdf_page_route_name', 'user-manual.pdf.page'), ['locale' => $locale, 'page' => $page]) }}" target="_blank"
                                 title="Export current page as PDF" class="user-manual__icon-button" style="display: inline-flex; align-items: center; gap: 4px; font-size: 13px; text-decoration: none;">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -92,6 +93,8 @@
                                 </svg>
                                 <span>{{ __('user-manual::messages.pdf_export_page') }}</span>
                             </a>
+                            @endif
+                            @if (Config::bool('user-manual.pdf.full.enabled', true))
                             <a href="{{ route(Config::string('user-manual.pdf_full_route_name', 'user-manual.pdf.full'), ['locale' => $locale]) }}" target="_blank"
                                 title="Export full manual as PDF" class="user-manual__icon-button" style="display: inline-flex; align-items: center; gap: 4px; font-size: 13px; text-decoration: none;">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -100,6 +103,7 @@
                                 </svg>
                                 <span>{{ __('user-manual::messages.pdf_export_full') }}</span>
                             </a>
+                            @endif
                         </div>
                     @endif
 
